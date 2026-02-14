@@ -84,7 +84,10 @@
 │   └── .env
 │
 ├── /docs
-│   └── PROJECT_PLAN.md          # This file
+│   ├── PROJECT_PLAN.md          # This file — high-level architecture
+│   ├── STEP_BY_STEP_IMPLEMENTATION.md  # Team task guide — who does what, when
+│   ├── DEPLOYMENT.md            # Vercel + Vultr deployment
+│   └── /setup                   # Setup guides (Firebase, MongoDB, etc.)
 ├── .env.example                 # Template for all keys
 ├── .gitignore
 └── README.md
@@ -376,6 +379,8 @@ VULTR_ENDPOINT=https://ewr1.vultrobjects.com   # or your Vultr region
 
 ## 48-Hour Timeline
 
+> **📋 Team implementation guide:** See [STEP_BY_STEP_IMPLEMENTATION.md](./STEP_BY_STEP_IMPLEMENTATION.md) for a chronological, person-by-person task breakdown with exact commands. Use it during the hackathon to coordinate Abhie, Ayush, Tiea, and Princy.
+
 ### Phase 1: Setup (Hours 0-4) — Everyone Together
 - Initialize monorepo: `npm create vite@latest frontend`, `npm init` for backend
 - Install all dependencies (see list below)
@@ -484,6 +489,8 @@ axios                          → CRS API calls
 ---
 
 ## Quick Setup Commands (for Day 1)
+
+> **Start here:** [STEP_BY_STEP_IMPLEMENTATION.md](./STEP_BY_STEP_IMPLEMENTATION.md) — step-by-step guide with person-specific tasks.
 
 ```bash
 # Clone the repo
