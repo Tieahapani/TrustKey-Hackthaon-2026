@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { isFirebaseConfigured } from '@/lib/firebase';
 import { LogIn } from 'lucide-react';
 
 export default function Login() {
@@ -35,6 +36,11 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 bg-card border rounded-xl p-6">
+          {!isFirebaseConfigured && (
+            <div className="p-3 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm">
+              Firebase is not configured. Set VITE_FIREBASE_* in frontend/.env or Vercel env vars, then redeploy.
+            </div>
+          )}
           {error && (
             <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
               {error}
