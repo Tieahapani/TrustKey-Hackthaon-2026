@@ -31,9 +31,10 @@ MONGODB_URI=mongodb+srv://trustkey:<password>@trustkey.ccv6cx4.mongodb.net/homes
 # Paste the ENTIRE JSON service account key as a single line
 FIREBASE_SERVICE_ACCOUNT={"type":"service_account","project_id":"...","private_key":"...","client_email":"..."}
 
-# CRS Credit API (hackathon sandbox key)
-CRS_API_KEY=                     # CRS sandbox API key
-CRS_API_URL=                     # CRS sandbox URL
+# CRS Credit API (hackathon sandbox — login with username/password)
+CRS_API_URL=https://api-sandbox.stitchcredit.com
+CRS_API_USERNAME=sfhacks_dev25   # From CRS sandbox portal
+CRS_API_PASSWORD=                # From CRS sandbox portal (quote if special chars)
 
 # Google Gemini (from https://aistudio.google.com/apikey)
 GEMINI_API_KEY=                  # Gemini API key
@@ -55,18 +56,18 @@ VULTR_ENDPOINT=https://hsjc1.vultrobjects.com  # Endpoint
 ## Important Notes
 
 1. **NEVER commit `.env` files to Git** — they're in `.gitignore`
-2. **Port is 5001** (not 5000) — macOS AirPlay uses 5000
-3. **Share secrets securely** — DM or shared doc, not in the repo
-4. **Ask a team member** for MongoDB password and Vultr credentials
+2. **Share API keys securely** — use a password manager, DM, or shared doc (not in the repo)
+3. **`.env.example`** in the project root shows the template without actual values
+4. Each teammate should create their own `.env` files locally after cloning
 
-## Which Keys Can the Team Share?
+## Which Keys Can We Share?
 
-| Key | Share one? | Why |
-|-----|-----------|-----|
-| Firebase config (frontend) | Yes | Same Firebase project |
-| Firebase service account | Yes | Same project |
-| MongoDB URI | Yes | Same database |
-| CRS API Key | Yes | One sandbox key |
+| Key | Can team share one? | Why |
+|-----|---------------------|-----|
+| Firebase config (frontend) | Yes | Same Firebase project for everyone |
+| Firebase service account | Yes | Same project, same backend |
+| MongoDB URI | Yes | Same database for the team |
+| CRS credentials (username/password) | Yes | One sandbox for the team |
 | Gemini API Key | One per person is better | Free tier per Google account |
 | ElevenLabs API Key | One per person is better | Free tier per account |
 | Tambo API Key | Yes | Same project |

@@ -1,12 +1,39 @@
 const admin = require('firebase-admin');
+const fs = require('fs');
+const path = require('path');
+
+// Load service account: supports file path or raw JSON string
+function loadServiceAccount() {
+  const val = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!val) return null;
+
+  // If it looks like a file path, read from file
+  const isPath = val.startsWith('.') || val.startsWith('/') || val.match(/^[A-Za-z]:[\\/]/);
+  if (isPath) {
+    const resolved = path.resolve(process.cwd(), val);
+    if (fs.existsSync(resolved)) {
+      return JSON.parse(fs.readFileSync(resolved, 'utf8'));
+    }
+    console.warn('FIREBASE_SERVICE_ACCOUNT path not found:', resolved);
+    return null;
+  }
+
+  // Otherwise treat as raw JSON
+  try {
+    return JSON.parse(val);
+  } catch (e) {
+    console.warn('FIREBASE_SERVICE_ACCOUNT invalid JSON');
+    return null;
+  }
+}
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+  const serviceAccount = loadServiceAccount();
   if (serviceAccount) {
     try {
       admin.initializeApp({
-        credential: admin.credential.cert(JSON.parse(serviceAccount)),
+        credential: admin.credential.cert(serviceAccount),
       });
     } catch (err) {
       console.warn('Firebase Admin init failed:', err.message);
