@@ -6,6 +6,5 @@ dist/
 .DS_Store
 
 # Firebase & secrets (never commit service account keys)
+backend/secrets/
 secrets/
-
-
