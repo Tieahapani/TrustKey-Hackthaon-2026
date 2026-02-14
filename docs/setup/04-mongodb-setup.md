@@ -88,6 +88,42 @@ node src/seed.js
 
 This creates 5 sample listings so the marketplace isn't empty.
 
+## Quick Setup for Team Members
+
+If the team's shared Atlas cluster is already created, you just need to:
+
+1. Create `backend/.env` (it's gitignored, so you won't find it in the repo)
+2. Add the connection string:
+
+```
+MONGODB_URI=mongodb+srv://trustkey:<password>@trustkey.u5bhfhn.mongodb.net/homescreen?retryWrites=true&w=majority&appName=TrustKey
+```
+
+3. Replace `<password>` with the database password (ask a team member)
+4. Install dependencies and test:
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+5. You should see: `Connected to MongoDB Atlas`
+
+6. Seed sample data (first time only):
+
+```bash
+node src/seed.js
+```
+
+This creates 5 sample listings + demo buyer/seller accounts.
+
+7. Verify by visiting: `http://localhost:5001/api/listings` — you should see JSON with the sample listings.
+
+> **Note:** The `.env` file contains secrets and is gitignored. Never commit it. Ask a team member for the password if you don't have it.
+
+---
+
 ## Troubleshooting
 
 **"MongoServerError: bad auth":**

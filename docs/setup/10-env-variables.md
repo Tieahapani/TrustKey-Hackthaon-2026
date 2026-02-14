@@ -1,6 +1,6 @@
 # 10. Environment Variables — Complete Reference
 
-Here's every environment variable you need, where it goes, and where to get it.
+> Last updated: Feb 14, 2026
 
 ## Frontend (`frontend/.env`)
 
@@ -14,17 +14,18 @@ VITE_FIREBASE_PROJECT_ID=        # e.g., homescreen-xxxxx
 VITE_TAMBO_API_KEY=              # Tambo API key
 
 # Backend URL
-VITE_API_URL=http://localhost:5000   # Change to Vultr URL for production
+VITE_API_URL=http://localhost:5001   # Local dev
+# VITE_API_URL=http://45.63.87.155:5001   # Production (set in Vercel)
 ```
 
 ## Backend (`backend/.env`)
 
 ```bash
 # Server
-PORT=5000
+PORT=5001
 
-# MongoDB Atlas (from Atlas dashboard > Connect > Drivers)
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/homescreen?retryWrites=true&w=majority
+# MongoDB Atlas (ask a team member for the password)
+MONGODB_URI=mongodb+srv://trustkey:<password>@trustkey.ccv6cx4.mongodb.net/homescreen?retryWrites=true&w=majority&appName=TrustKey
 
 # Firebase Admin (from Firebase Console > Project Settings > Service Accounts > Generate Key)
 # Paste the ENTIRE JSON service account key as a single line
@@ -42,14 +43,17 @@ GEMINI_API_KEY=                  # Gemini API key
 ELEVENLABS_API_KEY=              # ElevenLabs API key
 ELEVENLABS_VOICE_ID=EXAVITQu4vr4xnSDxMaL   # Voice ID (Sarah is default)
 
-# Vultr Object Storage (from Vultr dashboard > Object Storage)
+# Vultr Object Storage (shared team credentials — ask a team member)
 VULTR_ACCESS_KEY=                # Vultr access key
 VULTR_SECRET_KEY=                # Vultr secret key
-VULTR_BUCKET_NAME=homescreen     # Name of your bucket
-VULTR_ENDPOINT=https://ewr1.vultrobjects.com  # Your region endpoint
+VULTR_BUCKET_NAME=trustkey       # Bucket name
+VULTR_ENDPOINT=https://hsjc1.vultrobjects.com  # Endpoint
+
+# CORS (production only — set on VPS)
+# CLIENT_URL=*
 ```
 
-## Important Security Notes
+## Important Notes
 
 1. **NEVER commit `.env` files to Git** — they're in `.gitignore`
 2. **Share API keys securely** — use a password manager, DM, or shared doc (not in the repo)
@@ -73,11 +77,7 @@ VULTR_ENDPOINT=https://ewr1.vultrobjects.com  # Your region endpoint
 
 Before running the project, make sure you have:
 
-- [ ] `frontend/.env` — all 4 `VITE_` variables filled in
-- [ ] `backend/.env` — all variables filled in
-- [ ] MongoDB Atlas cluster created and accessible
-- [ ] Firebase project created with Email/Password auth enabled
-- [ ] At least Gemini API key (chat won't work without it)
-- [ ] ElevenLabs key (optional — text answers still work without voice)
-- [ ] CRS key (optional — mock data used if not set)
-- [ ] Vultr keys (optional — photo upload won't work without it, but listings still work)
+- [ ] `backend/.env` created with at least `MONGODB_URI` filled in
+- [ ] `frontend/.env` created (optional for local dev — Vite proxies to backend)
+- [ ] MongoDB password (ask team member)
+- [ ] Vultr credentials (ask team member)
