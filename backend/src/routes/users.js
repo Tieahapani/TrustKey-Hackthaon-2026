@@ -6,14 +6,10 @@ const { verifyToken } = require('../middleware/auth');
 // POST /api/users/register — Create user profile after Firebase signup
 router.post('/register', verifyToken, async (req, res) => {
   try {
-    const { name, role, phone } = req.body;
+    const { name, phone } = req.body;
 
-    if (!name || !role) {
-      return res.status(400).json({ error: 'Name and role are required' });
-    }
-
-    if (!['buyer', 'seller'].includes(role)) {
-      return res.status(400).json({ error: 'Role must be buyer or seller' });
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
     }
 
     // Check if user already exists
@@ -26,7 +22,6 @@ router.post('/register', verifyToken, async (req, res) => {
       firebaseUid: req.user.uid,
       email: req.user.email,
       name,
-      role,
       phone: phone || '',
     });
 

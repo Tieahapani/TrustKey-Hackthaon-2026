@@ -10,8 +10,8 @@ const { pullComprehensiveReport, calculateMatchScore } = require('../services/cr
 router.post('/', verifyToken, async (req, res) => {
   try {
     const user = await User.findOne({ firebaseUid: req.user.uid });
-    if (!user || user.role !== 'buyer') {
-      return res.status(403).json({ error: 'Only buyers can apply' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const { listingId, consent, buyerInfo } = req.body;
@@ -81,7 +81,17 @@ router.post('/', verifyToken, async (req, res) => {
       screenedAt: new Date(),
     });
 
-    res.status(201).json(application);
+    // Return only non-sensitive fields to the buyer
+    res.status(201).json({
+      _id: application._id,
+      listingId: application.listingId,
+      buyerId: application.buyerId,
+      status: application.status,
+      buyerInfo: application.buyerInfo,
+      consentGiven: application.consentGiven,
+      screenedAt: application.screenedAt,
+      createdAt: application.createdAt,
+    });
   } catch (err) {
     if (err.code === 11000) {
       return res.status(409).json({ error: 'You have already applied to this listing' });
@@ -129,7 +139,13 @@ router.get('/mine', verifyToken, async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    res.json(applications);
+    // Strip CRS screening data from buyer view — only sellers see this
+    const sanitized = applications.map(({ crsData, matchBreakdown, matchScore, matchColor, totalPoints, earnedPoints, ...rest }) => ({
+      ...rest,
+      // Keep status so the buyer can see pending/screened/approved/rejected
+    }));
+
+    res.json(sanitized);
   } catch (err) {
     console.error('Get my applications error:', err);
     res.status(500).json({ error: 'Failed to fetch applications' });
@@ -162,6 +178,31 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
   } catch (err) {
     console.error('Update application status error:', err);
     res.status(500).json({ error: 'Failed to update application' });
+  }
+});
+
+// DELETE /api/applications/:id — Buyer withdraws their own application
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findOne({ firebaseUid: req.user.uid });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const application = await Application.findById(req.params.id);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    if (application.buyerId.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized to withdraw this application' });
+    }
+
+    await application.deleteOne();
+    res.json({ message: 'Application withdrawn' });
+  } catch (err) {
+    console.error('Withdraw application error:', err);
+    res.status(500).json({ error: 'Failed to withdraw application' });
   }
 });
 

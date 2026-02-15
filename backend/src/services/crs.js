@@ -171,11 +171,20 @@ const FLEXID_TEST_IDENTITIES = [
   { firstName: 'JOHN', lastName: 'COPE', ssn: '574709961', dateOfBirth: '1973-08-01', streetAddress1: '511 SYCAMORE AVE', city: 'HAYWARD', state: 'CA', zipCode: '94544', homePhone: '5105811251' },
 ];
 
-// Round-robin counters (for CRS sandbox test identities only — FBI uses real buyer name)
-let tuIndex = 0;
-let evictionIndex = 0;
-let criminalIndex = 0;
-let flexIdIndex = 0;
+/**
+ * Hash a buyer name + product salt to a consistent index.
+ * Same name+product → same index every time → deterministic CRS sandbox results.
+ * Different products use different salts for more variety across buyers.
+ */
+function nameToIndex(buyerInfo, arrayLength, salt = '') {
+  const str = `${salt}:${(buyerInfo.firstName || '')}${(buyerInfo.lastName || '')}`.toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % arrayLength;
+}
 
 // ============================================
 // COMPREHENSIVE SCREENING (All 5 Products)
@@ -195,14 +204,12 @@ async function pullComprehensiveReport(buyerInfo) {
   const password = process.env.CRS_API_PASSWORD;
 
   if (!baseUrl || !username || !password) {
-    console.warn('⚠️  CRS API not configured — returning mock data');
-    return getMockComprehensiveData();
+    throw new Error('CRS API not configured — set CRS_API_URL, CRS_API_USERNAME, CRS_API_PASSWORD');
   }
 
   const token = await getCrsToken();
   if (!token) {
-    console.warn('⚠️  CRS login failed — returning mock data');
-    return getMockComprehensiveData();
+    throw new Error('CRS authentication failed');
   }
 
   const headers = {
@@ -252,8 +259,7 @@ async function pullComprehensiveReport(buyerInfo) {
     // ── 2. FlexID (Identity Verification) ────────────────
     console.log('🆔 [2/5] Running FlexID Identity Verification...');
     try {
-      const flexPayload = FLEXID_TEST_IDENTITIES[flexIdIndex % FLEXID_TEST_IDENTITIES.length];
-      flexIdIndex++;
+      const flexPayload = FLEXID_TEST_IDENTITIES[nameToIndex(buyerInfo, FLEXID_TEST_IDENTITIES.length, 'flexid')];
 
       const flexResponse = await axios.post(
         `${baseUrl}/flex-id/flex-id`,
@@ -274,8 +280,7 @@ async function pullComprehensiveReport(buyerInfo) {
     // ── 3. Credit Report (TransUnion) ────────────────────
     console.log('📊 [3/5] Fetching TransUnion credit report...');
     try {
-      const tuPayload = TU_TEST_IDENTITIES[tuIndex % TU_TEST_IDENTITIES.length];
-      tuIndex++;
+      const tuPayload = TU_TEST_IDENTITIES[nameToIndex(buyerInfo, TU_TEST_IDENTITIES.length, 'tu')];
       const tuResponse = await axios.post(
         `${baseUrl}/transunion/credit-report/standard/tu-prequal-vantage4`,
         tuPayload,
@@ -299,8 +304,7 @@ async function pullComprehensiveReport(buyerInfo) {
     // ── 4. Criminal Background Check ─────────────────────
     console.log('🚔 [4/5] Fetching criminal background...');
     try {
-      const crimPayload = CRIMINAL_TEST_IDENTITIES[criminalIndex % CRIMINAL_TEST_IDENTITIES.length];
-      criminalIndex++;
+      const crimPayload = CRIMINAL_TEST_IDENTITIES[nameToIndex(buyerInfo, CRIMINAL_TEST_IDENTITIES.length, 'criminal')];
       const criminalResponse = await axios.post(
         `${baseUrl}/criminal/new-request`,
         crimPayload,
@@ -323,8 +327,7 @@ async function pullComprehensiveReport(buyerInfo) {
     // ── 5. Eviction History ──────────────────────────────
     console.log('🏠 [5/5] Fetching eviction history...');
     try {
-      const evicPayload = EVICTION_TEST_IDENTITIES[evictionIndex % EVICTION_TEST_IDENTITIES.length];
-      evictionIndex++;
+      const evicPayload = EVICTION_TEST_IDENTITIES[nameToIndex(buyerInfo, EVICTION_TEST_IDENTITIES.length, 'eviction')];
       const evictionResponse = await axios.post(
         `${baseUrl}/eviction/new-request`,
         evicPayload,
@@ -361,11 +364,18 @@ async function pullComprehensiveReport(buyerInfo) {
         }
       );
 
-      const fbiTotal = fbiResponse.data?.total || 0;
       const fbiItems = fbiResponse.data?.items || [];
 
-      // Extract crime details from matching entries
-      const crimes = fbiItems.map((item) => ({
+      // FBI API does fuzzy matching — filter to only entries where BOTH
+      // the buyer's first AND last name appear in the wanted person's title
+      const firstLower = fbiFirstName.toLowerCase();
+      const lastLower = fbiLastName.toLowerCase();
+      const trueMatches = fbiItems.filter((item) => {
+        const title = (item.title || '').toLowerCase();
+        return title.includes(firstLower) && title.includes(lastLower);
+      });
+
+      const crimes = trueMatches.map((item) => ({
         name: item.title || 'Unknown',
         description: item.description || '',
         subjects: item.subjects || [],
@@ -374,17 +384,18 @@ async function pullComprehensiveReport(buyerInfo) {
       }));
 
       results.fbiMostWanted = {
-        matchFound: fbiTotal > 0,
-        matchCount: fbiTotal,
+        matchFound: trueMatches.length > 0,
+        matchCount: trueMatches.length,
         searchedName: `${fbiFirstName} ${fbiLastName}`,
         crimes,
       };
 
-      if (fbiTotal > 0) {
-        console.log(`   🚨 FBI MATCH FOUND! ${fbiTotal} result(s) for "${fbiFirstName} ${fbiLastName}"`);
+      if (trueMatches.length > 0) {
+        console.log(`   🚨 FBI MATCH FOUND! ${trueMatches.length} true match(es) for "${fbiFirstName} ${fbiLastName}"`);
         crimes.forEach((c) => console.log(`      → ${c.name}: ${c.description}`));
       } else {
-        console.log(`   ✅ No FBI match for "${fbiFirstName} ${fbiLastName}"`);
+        const rejected = fbiItems.length - trueMatches.length;
+        console.log(`   ✅ No FBI match for "${fbiFirstName} ${fbiLastName}"${rejected ? ` (${rejected} fuzzy result(s) filtered out)` : ''}`);
       }
     } catch (err) {
       console.warn('   ⚠️  FBI check failed:', err.message);
@@ -399,26 +410,8 @@ async function pullComprehensiveReport(buyerInfo) {
   } catch (err) {
     console.error('❌ CRS API error:', err.response?.data || err.message);
     console.log('='.repeat(60) + '\n');
-    return getMockComprehensiveData();
+    throw new Error('CRS screening failed: ' + (err.response?.data?.messages?.[0] || err.message));
   }
-}
-
-/**
- * Mock comprehensive data for development/demo
- */
-function getMockComprehensiveData() {
-  const scores = [580, 620, 650, 680, 700, 720, 740, 760, 780];
-
-  return {
-    creditScore: scores[Math.floor(Math.random() * scores.length)],
-    evictions: Math.random() > 0.85 ? Math.floor(Math.random() * 2) + 1 : 0,
-    bankruptcies: Math.random() > 0.9 ? 1 : 0,
-    criminalOffenses: Math.random() > 0.92 ? Math.floor(Math.random() * 2) + 1 : 0,
-    fraudRiskScore: Math.floor(Math.random() * 4),
-    identityVerified: Math.random() > 0.1,
-    fbiMostWanted: { matchFound: false, matchCount: 0, searchedName: 'MOCK USER', crimes: [] },
-    requestIds: {},
-  };
 }
 
 /**
@@ -555,4 +548,6 @@ function calculateMatchScore(crsData, criteria) {
 module.exports = {
   pullComprehensiveReport,
   calculateMatchScore,
+  findValueByKey,
+  countOccurrences,
 };

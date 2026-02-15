@@ -1,83 +1,71 @@
-import { Link } from 'react-router-dom';
-import { Bed, Bath, Maximize, MapPin } from 'lucide-react';
-import { formatPrice } from '@/lib/utils';
+/**
+ * Listing card — displays a single property in the browse grid.
+ * Uses backend Listing type (_id, photos) instead of Lovable mock shape.
+ */
+import { Link } from "react-router-dom";
+import { Bed, Bath, Maximize, MapPin } from "lucide-react";
+import { resolveImageUrl } from "@/lib/api";
+import type { Listing } from "@/lib/api";
+import { motion } from "framer-motion";
 
-interface ListingCardProps {
-  listing: {
-    _id: string;
-    title: string;
-    address: string;
-    city: string;
-    state: string;
-    price: number;
-    listingType: 'rent' | 'sale';
-    photos: string[];
-    bedrooms: number;
-    bathrooms: number;
-    sqft: number;
-  };
+interface Props {
+  listing: Listing;
+  index?: number;
 }
 
-export default function ListingCard({ listing }: ListingCardProps) {
-  const placeholderImg = `https://placehold.co/600x400/e2e8f0/64748b?text=${encodeURIComponent(listing.title.slice(0, 20))}`;
+const PLACEHOLDER = "https://placehold.co/800x600/e2e8f0/94a3b8?text=No+Image";
+
+export default function ListingCard({ listing, index = 0 }: Props) {
+  const priceLabel =
+    listing.listingType === "rent"
+      ? `$${listing.price.toLocaleString()}/mo`
+      : `$${listing.price.toLocaleString()}`;
+
+  const thumbnail = resolveImageUrl(listing.photos?.[0]) || PLACEHOLDER;
 
   return (
-    <Link
-      to={`/listing/${listing._id}`}
-      className="group block rounded-xl border bg-card overflow-hidden hover:shadow-lg transition-shadow duration-300"
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, duration: 0.4 }}
     >
-      {/* Image */}
-      <div className="aspect-[4/3] overflow-hidden bg-muted relative">
-        <img
-          src={listing.photos?.[0] || placeholderImg}
-          alt={listing.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = placeholderImg;
-          }}
-        />
-        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/90 text-foreground backdrop-blur-sm">
-          {listing.listingType === 'rent' ? 'For Rent' : 'For Sale'}
-        </span>
-      </div>
+      <Link to={`/listing/${listing._id}`} className="group block">
+        <div className="overflow-hidden rounded-xl bg-card card-shadow transition-shadow duration-300 hover:card-shadow-hover">
+          {/* Image */}
+          <div className="relative aspect-[4/3] overflow-hidden">
+            <img
+              src={thumbnail}
+              alt={listing.title}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = PLACEHOLDER;
+              }}
+            />
+            <div className="absolute top-3 left-3">
+              <span className="rounded-md bg-primary px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-primary-foreground">
+                For {listing.listingType === "rent" ? "Rent" : "Sale"}
+              </span>
+            </div>
+          </div>
 
-      {/* Content */}
-      <div className="p-4">
-        <div className="flex items-baseline justify-between mb-1">
-          <h3 className="font-semibold text-lg text-foreground truncate pr-2">
-            {listing.title}
-          </h3>
+          {/* Content */}
+          <div className="p-4">
+            <p className="font-display text-xl font-semibold text-foreground">{priceLabel}</p>
+            <h3 className="mt-1 text-sm font-medium text-foreground line-clamp-1">{listing.title}</h3>
+            <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3" />
+              {listing.address}, {listing.city}, {listing.state}
+            </div>
+
+            <div className="mt-3 flex items-center gap-4 border-t border-border pt-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><Bed className="h-3.5 w-3.5" /> {listing.bedrooms} bd</span>
+              <span className="flex items-center gap-1"><Bath className="h-3.5 w-3.5" /> {listing.bathrooms} ba</span>
+              <span className="flex items-center gap-1"><Maximize className="h-3.5 w-3.5" /> {listing.sqft.toLocaleString()} sqft</span>
+            </div>
+          </div>
         </div>
-
-        <p className="text-2xl font-bold text-primary mb-2">
-          {formatPrice(listing.price)}
-          {listing.listingType === 'rent' && (
-            <span className="text-sm font-normal text-muted-foreground">/mo</span>
-          )}
-        </p>
-
-        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
-          <MapPin className="w-3.5 h-3.5" />
-          <span className="truncate">{listing.city}, {listing.state}</span>
-        </div>
-
-        <div className="flex items-center gap-4 text-sm text-muted-foreground border-t pt-3">
-          <span className="flex items-center gap-1">
-            <Bed className="w-4 h-4" />
-            {listing.bedrooms} bd
-          </span>
-          <span className="flex items-center gap-1">
-            <Bath className="w-4 h-4" />
-            {listing.bathrooms} ba
-          </span>
-          {listing.sqft > 0 && (
-            <span className="flex items-center gap-1">
-              <Maximize className="w-4 h-4" />
-              {listing.sqft.toLocaleString()} sqft
-            </span>
-          )}
-        </div>
-      </div>
-    </Link>
+      </Link>
+    </motion.div>
   );
 }

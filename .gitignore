@@ -8,3 +8,4 @@ dist/
 # Firebase & secrets (never commit service account keys)
 backend/secrets/
 secrets/
+rent-deal-pro/

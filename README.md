@@ -4,6 +4,8 @@ TrustKey is a comprehensive risk screening platform that auto-scores tenant appl
 
 ---
 
+_Last updated: Feb 2026_
+
 ## Tech Stack
 
 ### Frontend

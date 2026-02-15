@@ -9,6 +9,8 @@ const PORT = process.env.PORT || 5000;
 // Middleware — allow Vercel and localhost
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
   'http://localhost:3000',
   'https://trustkey-two.vercel.app',
   ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
@@ -19,16 +21,24 @@ app.use(cors({
     return cb(null, false);
   },
   credentials: true,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+// Ensure preflight OPTIONS requests are handled
+app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
+
+// Serve uploaded images statically
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Connect to MongoDB (cached across serverless invocations)
 let dbReady = null;
-if (process.env.MONGODB_URI) {
+if (process.env.NODE_ENV !== 'test' && process.env.MONGODB_URI) {
   dbReady = mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('Connected to MongoDB Atlas'))
     .catch((err) => console.error('MongoDB connection error:', err));
-} else {
+} else if (!process.env.MONGODB_URI && process.env.NODE_ENV !== 'test') {
   console.warn('MONGODB_URI not set — running without database');
 }
 
@@ -65,8 +75,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Start server only when running locally (not on Vercel)
-if (!process.env.VERCEL) {
+// Start server only when running locally (not on Vercel or in tests)
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`HomeScreen API running on http://localhost:${PORT}`);
   });

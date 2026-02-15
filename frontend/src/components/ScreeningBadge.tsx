@@ -1,37 +1,44 @@
-import { cn, getMatchLabel } from '@/lib/utils';
-import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
-
-interface ScreeningBadgeProps {
+interface Props {
   score: number;
-  color: 'green' | 'yellow' | 'red';
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 
-export default function ScreeningBadge({ score, color, size = 'md' }: ScreeningBadgeProps) {
-  const Icon = color === 'green' ? CheckCircle : color === 'yellow' ? AlertTriangle : XCircle;
+export default function ScreeningBadge({ score, size = "md" }: Props) {
+  const level = score >= 75 ? "green" : score >= 50 ? "yellow" : "red";
+  const label = score >= 75 ? "Strong" : score >= 50 ? "Fair" : "Weak";
 
   const sizeClasses = {
-    sm: 'text-xs px-2 py-0.5',
-    md: 'text-sm px-3 py-1',
-    lg: 'text-base px-4 py-1.5',
-  };
-
-  const colorClasses = {
-    green: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    yellow: 'bg-amber-50 text-amber-700 border-amber-200',
-    red: 'bg-red-50 text-red-700 border-red-200',
+    sm: "h-8 w-8 text-xs",
+    md: "h-12 w-12 text-sm",
+    lg: "h-16 w-16 text-base",
   };
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border font-medium',
-        sizeClasses[size],
-        colorClasses[color]
+    <div className="flex items-center gap-2">
+      <div
+        className={`flex items-center justify-center rounded-full font-bold ${sizeClasses[size]} ${
+          level === "green"
+            ? "bg-screening-green-bg text-screening-green"
+            : level === "yellow"
+            ? "bg-screening-yellow-bg text-screening-yellow"
+            : "bg-screening-red-bg text-screening-red"
+        }`}
+      >
+        {score}
+      </div>
+      {size !== "sm" && (
+        <span
+          className={`text-xs font-medium ${
+            level === "green"
+              ? "text-screening-green"
+              : level === "yellow"
+              ? "text-screening-yellow"
+              : "text-screening-red"
+          }`}
+        >
+          {label} Match
+        </span>
       )}
-    >
-      <Icon className={size === 'sm' ? 'w-3 h-3' : size === 'lg' ? 'w-5 h-5' : 'w-4 h-4'} />
-      {score}% — {getMatchLabel(color)}
-    </span>
+    </div>
   );
 }

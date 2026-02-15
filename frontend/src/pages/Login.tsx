@@ -1,93 +1,102 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { isFirebaseConfigured } from '@/lib/firebase';
-import { LogIn } from 'lucide-react';
+/**
+ * Login page — Firebase email/password authentication.
+ * Redirects sellers to /dashboard, buyers to /.
+ */
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { LogIn, Eye, EyeOff } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
     setLoading(true);
-
     try {
       await login(email, password);
-      navigate('/');
+      // useAuth sets user with role — check it for redirect
+      navigate("/");
     } catch (err: any) {
-      setError(err?.message || 'Login failed. Check your credentials.');
+      const code = err?.code || "";
+      if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential") {
+        setError("Invalid email or password.");
+      } else if (err?.message) {
+        setError(err.message);
+      } else {
+        setError("Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Welcome Back</h1>
-          <p className="text-muted-foreground mt-2">Log in to your HomeScreen account</p>
+    <div className="flex min-h-screen items-center justify-center px-4 pt-16">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md rounded-2xl border border-border bg-card p-8 card-shadow"
+      >
+        <div className="text-center">
+          <h1 className="font-display text-2xl font-bold text-foreground">Welcome Back</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Sign in to your TrustKey account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 bg-card border rounded-xl p-6">
-          {!isFirebaseConfigured && (
-            <div className="p-3 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm">
-              Firebase is not configured. Set VITE_FIREBASE_* in frontend/.env or Vercel env vars, then redeploy.
-            </div>
-          )}
-          {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          {error && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">Email</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="••••••••"
-            />
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
+            <div className="relative">
+              <input
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 pr-10 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+                placeholder="Enter your password"
+              />
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            <LogIn className="w-4 h-4" />
-            {loading ? 'Logging in...' : 'Log In'}
-          </button>
-
-          <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-primary hover:underline font-medium">
-              Sign up
-            </Link>
-          </p>
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            <LogIn className="mr-2 h-4 w-4" />
+            {loading ? "Signing in..." : "Sign In"}
+          </Button>
         </form>
-      </div>
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Don't have an account?{" "}
+          <Link to="/register" className="font-medium text-foreground hover:underline">Sign up</Link>
+        </p>
+      </motion.div>
     </div>
   );
 }
