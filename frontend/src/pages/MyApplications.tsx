@@ -23,7 +23,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
-import { fetchMyApplications, withdrawApplication } from "@/lib/api";
+import { fetchMyApplications, withdrawApplication, resolveImageUrl } from "@/lib/api";
 import type { Application } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -398,7 +398,7 @@ export default function MyApplications() {
                   ? app.listingId
                   : null;
                 const photo =
-                  listing?.photos?.[0] ?? PLACEHOLDER;
+                  resolveImageUrl(listing?.photos?.[0]) || PLACEHOLDER;
                 const canWithdraw =
                   app.status !== "approved" && app.status !== "rejected";
 

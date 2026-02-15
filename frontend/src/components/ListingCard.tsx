@@ -4,6 +4,7 @@
  */
 import { Link } from "react-router-dom";
 import { Bed, Bath, Maximize, MapPin } from "lucide-react";
+import { resolveImageUrl } from "@/lib/api";
 import type { Listing } from "@/lib/api";
 import { motion } from "framer-motion";
 
@@ -20,7 +21,7 @@ export default function ListingCard({ listing, index = 0 }: Props) {
       ? `$${listing.price.toLocaleString()}/mo`
       : `$${listing.price.toLocaleString()}`;
 
-  const thumbnail = listing.photos?.[0] || PLACEHOLDER;
+  const thumbnail = resolveImageUrl(listing.photos?.[0]) || PLACEHOLDER;
 
   return (
     <motion.div

@@ -211,4 +211,18 @@ export const getPresignedUrl = (fileName: string, fileType: string) =>
     )
     .then((r) => r.data);
 
+/**
+ * Resolve an image URL — handles relative `/uploads/...` paths from
+ * older listings by prepending the backend API URL.
+ */
+export function resolveImageUrl(url: string | undefined): string {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/uploads/")) {
+    const base = import.meta.env.VITE_API_URL || "";
+    return `${base}${url}`;
+  }
+  return url;
+}
+
 export default api;

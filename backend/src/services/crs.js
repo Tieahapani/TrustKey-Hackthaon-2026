@@ -190,19 +190,32 @@ let flexIdIndex = 0;
  * 5. Eviction history
  */
 async function pullComprehensiveReport(buyerInfo) {
+  // Check for test persona FIRST — these always return deterministic data,
+  // even when the CRS API is configured. This ensures the 5 demo names
+  // produce consistent, varied results for UI testing.
+  if (buyerInfo) {
+    const personaKey = `${(buyerInfo.firstName || '').trim()} ${(buyerInfo.lastName || '').trim()}`
+      .toLowerCase()
+      .trim();
+    if (TEST_PERSONAS[personaKey]) {
+      console.log(`🎭 Test persona matched: "${personaKey}" — skipping CRS API`);
+      return { ...TEST_PERSONAS[personaKey] };
+    }
+  }
+
   const baseUrl = process.env.CRS_API_URL;
   const username = process.env.CRS_API_USERNAME;
   const password = process.env.CRS_API_PASSWORD;
 
   if (!baseUrl || !username || !password) {
     console.warn('⚠️  CRS API not configured — returning mock data');
-    return getMockComprehensiveData();
+    return getMockComprehensiveData(buyerInfo);
   }
 
   const token = await getCrsToken();
   if (!token) {
     console.warn('⚠️  CRS login failed — returning mock data');
-    return getMockComprehensiveData();
+    return getMockComprehensiveData(buyerInfo);
   }
 
   const headers = {
@@ -399,15 +412,109 @@ async function pullComprehensiveReport(buyerInfo) {
   } catch (err) {
     console.error('❌ CRS API error:', err.response?.data || err.message);
     console.log('='.repeat(60) + '\n');
-    return getMockComprehensiveData();
+    return getMockComprehensiveData(buyerInfo);
   }
 }
 
+// ============================================
+// 5 DETERMINISTIC TEST PERSONAS (for demo/mock)
+// Enter any of these names in the apply form to
+// get their fixed screening data every time.
+// ============================================
+
+const TEST_PERSONAS = {
+  'alice morgan': {
+    creditScore: 780,
+    evictions: 0,
+    bankruptcies: 0,
+    criminalOffenses: 0,
+    fraudRiskScore: 1,
+    identityVerified: true,
+    fbiMostWanted: { matchFound: false, matchCount: 0, searchedName: 'Alice Morgan', crimes: [] },
+    requestIds: { mock: 'alice-morgan' },
+  },
+  'bob martinez': {
+    creditScore: 680,
+    evictions: 0,
+    bankruptcies: 0,
+    criminalOffenses: 1,
+    fraudRiskScore: 2,
+    identityVerified: true,
+    fbiMostWanted: { matchFound: false, matchCount: 0, searchedName: 'Bob Martinez', crimes: [] },
+    requestIds: { mock: 'bob-martinez' },
+  },
+  'charlie kumar': {
+    creditScore: 540,
+    evictions: 2,
+    bankruptcies: 1,
+    criminalOffenses: 3,
+    fraudRiskScore: 6,
+    identityVerified: false,
+    fbiMostWanted: { matchFound: false, matchCount: 0, searchedName: 'Charlie Kumar', crimes: [] },
+    requestIds: { mock: 'charlie-kumar' },
+  },
+  'diana ross': {
+    creditScore: 710,
+    evictions: 0,
+    bankruptcies: 1,
+    criminalOffenses: 0,
+    fraudRiskScore: 0,
+    identityVerified: true,
+    fbiMostWanted: { matchFound: false, matchCount: 0, searchedName: 'Diana Ross', crimes: [] },
+    requestIds: { mock: 'diana-ross' },
+  },
+  'evan blackwell': {
+    creditScore: 620,
+    evictions: 0,
+    bankruptcies: 0,
+    criminalOffenses: 1,
+    fraudRiskScore: 8,
+    identityVerified: false,
+    fbiMostWanted: {
+      matchFound: true,
+      matchCount: 1,
+      searchedName: 'Evan Blackwell',
+      crimes: [{
+        name: 'EVAN JAMES BLACKWELL',
+        description: 'Unlawful Flight to Avoid Prosecution - Armed Robbery, Assault',
+        subjects: ['Violent Crime'],
+        warningMessage: 'SHOULD BE CONSIDERED ARMED AND DANGEROUS',
+        url: null,
+      }],
+    },
+    requestIds: { mock: 'evan-blackwell' },
+  },
+};
+
 /**
- * Mock comprehensive data for development/demo
+ * Mock comprehensive data for development/demo.
+ *
+ * If buyerInfo is provided and matches one of the 5 test personas,
+ * returns their fixed data. Otherwise returns a random profile.
+ *
+ * Test personas (enter these names in the apply form):
+ *   1. Alice Morgan   — Excellent (credit 780, clean record)
+ *   2. Bob Martinez   — Fair      (credit 650, 1 eviction)
+ *   3. Charlie Kumar  — Poor      (credit 540, 2 evictions, 1 bankruptcy, 3 criminal, high fraud)
+ *   4. Diana Ross     — Good      (credit 710, 1 bankruptcy, otherwise clean)
+ *   5. Evan Blackwell — FBI match (instant 0/100 — armed robbery)
  */
-function getMockComprehensiveData() {
+function getMockComprehensiveData(buyerInfo) {
+  if (buyerInfo) {
+    const key = `${(buyerInfo.firstName || '').trim()} ${(buyerInfo.lastName || '').trim()}`
+      .toLowerCase()
+      .trim();
+    if (TEST_PERSONAS[key]) {
+      console.log(`🎭 Using test persona: "${key}"`);
+      return { ...TEST_PERSONAS[key] };
+    }
+  }
+
+  // Fallback: random data for unknown names
   const scores = [580, 620, 650, 680, 700, 720, 740, 760, 780];
+  const name = buyerInfo
+    ? `${buyerInfo.firstName || ''} ${buyerInfo.lastName || ''}`.trim()
+    : 'UNKNOWN';
 
   return {
     creditScore: scores[Math.floor(Math.random() * scores.length)],
@@ -416,7 +523,7 @@ function getMockComprehensiveData() {
     criminalOffenses: Math.random() > 0.92 ? Math.floor(Math.random() * 2) + 1 : 0,
     fraudRiskScore: Math.floor(Math.random() * 4),
     identityVerified: Math.random() > 0.1,
-    fbiMostWanted: { matchFound: false, matchCount: 0, searchedName: 'MOCK USER', crimes: [] },
+    fbiMostWanted: { matchFound: false, matchCount: 0, searchedName: name, crimes: [] },
     requestIds: {},
   };
 }

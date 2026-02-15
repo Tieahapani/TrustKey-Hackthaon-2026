@@ -12,7 +12,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { fetchMyListings, updateListing, deleteListing, uploadImages } from "@/lib/api";
+import { fetchMyListings, updateListing, deleteListing, uploadImages, resolveImageUrl } from "@/lib/api";
 import type { Listing } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -427,7 +427,7 @@ export default function MyListings() {
                   <div className="relative h-48 w-full bg-muted">
                     {listing.photos && listing.photos.length > 0 ? (
                       <img
-                        src={listing.photos[0]}
+                        src={resolveImageUrl(listing.photos[0])}
                         alt={listing.title}
                         className="h-full w-full object-cover"
                       />

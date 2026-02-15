@@ -22,36 +22,38 @@ const { pullComprehensiveReport, calculateMatchScore } = require('./services/crs
 /*  Demo buyer profiles                                                */
 /* ------------------------------------------------------------------ */
 
+// These names match the 5 TEST_PERSONAS in services/crs.js
+// so each buyer gets deterministic, varied screening results.
 const DEMO_BUYERS = [
   {
-    email: 'demo-buyer@trustkey.app',
-    name: 'Sam Rivera',
-    phone: '(555) 987-6543',
-    buyerInfo: { firstName: 'Sam', lastName: 'Rivera', dob: '1992-05-14', email: 'demo-buyer@trustkey.app' },
+    email: 'alice.morgan@trustkey.app',
+    name: 'Alice Morgan',
+    phone: '(555) 111-2233',
+    buyerInfo: { firstName: 'Alice', lastName: 'Morgan', dob: '1991-03-15', email: 'alice.morgan@trustkey.app' },
   },
   {
-    email: 'jordan.lee@trustkey.app',
-    name: 'Jordan Lee',
-    phone: '(555) 234-5678',
-    buyerInfo: { firstName: 'Jordan', lastName: 'Lee', dob: '1988-11-03', email: 'jordan.lee@trustkey.app' },
+    email: 'bob.martinez@trustkey.app',
+    name: 'Bob Martinez',
+    phone: '(555) 222-3344',
+    buyerInfo: { firstName: 'Bob', lastName: 'Martinez', dob: '1985-07-22', email: 'bob.martinez@trustkey.app' },
   },
   {
-    email: 'maria.santos@trustkey.app',
-    name: 'Maria Santos',
-    phone: '(555) 345-6789',
-    buyerInfo: { firstName: 'Maria', lastName: 'Santos', dob: '1995-02-20', email: 'maria.santos@trustkey.app' },
+    email: 'charlie.kumar@trustkey.app',
+    name: 'Charlie Kumar',
+    phone: '(555) 333-4455',
+    buyerInfo: { firstName: 'Charlie', lastName: 'Kumar', dob: '1993-11-08', email: 'charlie.kumar@trustkey.app' },
   },
   {
-    email: 'david.chen@trustkey.app',
-    name: 'David Chen',
-    phone: '(555) 456-7890',
-    buyerInfo: { firstName: 'David', lastName: 'Chen', dob: '1990-08-12', email: 'david.chen@trustkey.app' },
+    email: 'diana.ross@trustkey.app',
+    name: 'Diana Ross',
+    phone: '(555) 444-5566',
+    buyerInfo: { firstName: 'Diana', lastName: 'Ross', dob: '1988-01-30', email: 'diana.ross@trustkey.app' },
   },
   {
-    email: 'priya.patel@trustkey.app',
-    name: 'Priya Patel',
-    phone: '(555) 567-8901',
-    buyerInfo: { firstName: 'Priya', lastName: 'Patel', dob: '1993-06-30', email: 'priya.patel@trustkey.app' },
+    email: 'evan.blackwell@trustkey.app',
+    name: 'Evan Blackwell',
+    phone: '(555) 555-6677',
+    buyerInfo: { firstName: 'Evan', lastName: 'Blackwell', dob: '1990-09-12', email: 'evan.blackwell@trustkey.app' },
   },
 ];
 
@@ -62,11 +64,11 @@ const DEMO_BUYERS = [
 
 // Each buyer applies to 3-4 listings for good coverage
 const BUYER_LISTING_MAP = [
-  [0, 2, 5, 10],   // Sam Rivera    → Austin Loft, Pearl District, Brickell, Charlotte High-Rise
-  [1, 3, 6, 8],    // Jordan Lee    → East Austin Bungalow, Hawthorne Studio, RiNo Townhome, Mission District
-  [4, 7, 9, 11],   // Maria Santos  → South Beach Penthouse, Highland Ranch, Bay View Condo, South End Townhome
-  [0, 4, 8],       // David Chen    → Austin Loft, South Beach Penthouse, Mission District
-  [2, 6, 10, 11],  // Priya Patel   → Pearl District, RiNo Townhome, Charlotte High-Rise, South End Townhome
+  [0, 2, 5, 10],   // Alice Morgan    (excellent) → variety of listings
+  [1, 3, 6, 8],    // Bob Martinez    (fair)      → some will pass, some won't
+  [4, 7, 9, 11],   // Charlie Kumar   (poor)      → mostly red
+  [0, 4, 8],       // Diana Ross      (good)      → bankruptcy will fail some
+  [2, 6, 10, 11],  // Evan Blackwell  (FBI match) → all 0/100
 ];
 
 /* ------------------------------------------------------------------ */
@@ -128,36 +130,9 @@ async function seedApplications() {
       console.log('─'.repeat(60));
 
       // Pull CRS report once per buyer (reuse for all their applications)
+      // Names match TEST_PERSONAS in crs.js — each gets deterministic data
       console.log(`\nPulling CRS screening data for ${buyer.name}...`);
       const crsData = await pullComprehensiveReport(buyer.buyerInfo);
-
-      // Override FBI false positives — the FBI API does fuzzy name matching
-      // which flags common names like "Lee", "Chen", "Patel" against unrelated
-      // wanted persons.  For demo, clear those and give one buyer a real match.
-      if (i !== 1) {
-        // Clear false-positive FBI matches for everyone except Jordan Lee (for demo)
-        crsData.fbiMostWanted = {
-          matchFound: false,
-          matchCount: 0,
-          searchedName: `${buyer.buyerInfo.firstName} ${buyer.buyerInfo.lastName}`,
-          crimes: [],
-        };
-      } else {
-        // Jordan Lee keeps the FBI match for demo purposes (shows hard-fail 0/100)
-        // but limit to 1 realistic match
-        crsData.fbiMostWanted = {
-          matchFound: true,
-          matchCount: 1,
-          searchedName: 'Jordan Lee',
-          crimes: [{
-            name: 'JORDAN LEE WILLIAMS',
-            description: 'Unlawful Flight to Avoid Prosecution - Murder',
-            subjects: ['Violent Crime'],
-            warningMessage: 'SHOULD BE CONSIDERED ARMED AND DANGEROUS',
-            url: null,
-          }],
-        };
-      }
 
       for (const idx of listingIndices) {
         if (idx >= listings.length) {

@@ -45,7 +45,11 @@ router.post('/images', verifyToken, upload.array('photos', 20), (req, res) => {
     return res.status(400).json({ error: 'No files uploaded' });
   }
 
-  const urls = req.files.map((f) => `/uploads/${f.filename}`);
+  // Build absolute URLs so the frontend can display them regardless of origin
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  const baseUrl = `${protocol}://${host}`;
+  const urls = req.files.map((f) => `${baseUrl}/uploads/${f.filename}`);
   res.json({ urls });
 });
 

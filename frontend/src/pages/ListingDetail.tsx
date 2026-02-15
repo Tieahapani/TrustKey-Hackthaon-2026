@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import ScreeningBadge from "@/components/ScreeningBadge";
 import PropertyChat from "@/components/PropertyChat";
-import { fetchListing, submitApplication, type Listing, type Application } from "@/lib/api";
+import { fetchListing, submitApplication, resolveImageUrl, type Listing, type Application } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -64,7 +64,7 @@ export default function ListingDetail() {
     );
   }
 
-  const photos = listing.photos?.length ? listing.photos : [PLACEHOLDER];
+  const photos = listing.photos?.length ? listing.photos.map(resolveImageUrl) : [PLACEHOLDER];
   const priceLabel = listing.listingType === "rent"
     ? `$${listing.price.toLocaleString()}/mo`
     : `$${listing.price.toLocaleString()}`;
