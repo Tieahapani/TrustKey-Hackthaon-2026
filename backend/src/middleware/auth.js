@@ -45,6 +45,7 @@ if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
+      console.log('Firebase Admin initialized for project:', serviceAccount.project_id);
     } catch (err) {
       console.warn('Firebase Admin init failed:', err.message);
       admin.initializeApp();
@@ -70,6 +71,7 @@ async function verifyToken(req, res, next) {
     req.user = { uid: decoded.uid, email: decoded.email };
     next();
   } catch (err) {
+    console.error('Token verification failed:', err.code, err.message);
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
