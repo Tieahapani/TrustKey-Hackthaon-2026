@@ -53,7 +53,16 @@ app.use('/api/users', usersRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    env: {
+      hasMongoUri: !!process.env.MONGODB_URI,
+      hasFirebaseB64: !!process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
+      hasFirebaseJson: !!process.env.FIREBASE_SERVICE_ACCOUNT,
+      firebaseB64Length: (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 || '').length,
+    },
+  });
 });
 
 // Start server only when running locally (not on Vercel)
