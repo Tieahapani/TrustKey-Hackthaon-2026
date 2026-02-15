@@ -22,6 +22,22 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
+// Connect to MongoDB (cached across serverless invocations)
+let dbReady = null;
+if (process.env.MONGODB_URI) {
+  dbReady = mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB Atlas'))
+    .catch((err) => console.error('MongoDB connection error:', err));
+} else {
+  console.warn('MONGODB_URI not set — running without database');
+}
+
+// Ensure DB is connected before handling requests (needed for serverless)
+app.use(async (req, res, next) => {
+  if (dbReady) await dbReady;
+  next();
+});
+
 // Routes
 const listingsRouter = require('./routes/listings');
 const applicationsRouter = require('./routes/applications');
@@ -39,15 +55,6 @@ app.use('/api/users', usersRouter);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-
-// Connect to MongoDB (cached across serverless invocations)
-if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB Atlas'))
-    .catch((err) => console.error('MongoDB connection error:', err));
-} else {
-  console.warn('MONGODB_URI not set — running without database');
-}
 
 // Start server only when running locally (not on Vercel)
 if (!process.env.VERCEL) {
