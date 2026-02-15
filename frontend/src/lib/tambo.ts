@@ -1,46 +1,25 @@
 /**
  * @file tambo.ts
  * @description Central configuration file for Tambo components and tools
- * 
- * This file serves as the central place to register your Tambo components and tools.
- * It exports arrays that will be used by the TamboProvider.
- * 
- * IMPORTANT: If you have components in different directories (e.g., both ui/ and tambo/),
- * make sure all import paths are consistent. Run 'npx tambo migrate' to consolidate.
- * 
- * Read more about Tambo at https://docs.tambo.co
+ *
+ * Registers UI components that Tambo AI can render inside the chat.
+ * When a user asks to apply for a listing, Tambo will render the
+ * ApplicationForm component instead of a text response.
  */
 
+import { z } from "zod/v4";
 import type { TamboComponent } from "@tambo-ai/react";
+import ApplicationForm from "../components/tambo/ApplicationForm";
 
-
-/**
- * Components Array - A collection of Tambo components to register
- * 
- * Components represent UI elements that can be generated or controlled by AI.
- * Register your custom components here to make them available to the AI.
- * 
- * Example of adding a component:
- * 
- * ```typescript
- * import { z } from "zod/v4";
- * import { CustomChart } from "../components/ui/custom-chart";
- * 
- * // Define and add your component
- * export const components: TamboComponent[] = [
- *   {
- *     name: "CustomChart",
- *     description: "Renders a custom chart with the provided data",
- *     component: CustomChart,
- *     propsSchema: z.object({
- *       data: z.array(z.number()),
- *       title: z.string().optional(),
- *     })
- *   }
- * ];
- * ```
- */
-export const components: TamboComponent[] = [];
-
-// Import your custom components that utilize the Tambo SDK
-// import { CustomChart } from "../components/tambo/custom-chart";
+export const components: TamboComponent[] = [
+  {
+    name: "ApplicationForm",
+    description:
+      "Renders an application form for a buyer to apply to a property listing. Use this component whenever a user wants to apply, submit an application, or sign up for a listing. The form collects: last name, first name, date of birth, and email. It then runs a soft credit check via CRS Credit API.",
+    component: ApplicationForm,
+    propsSchema: z.object({
+      listingId: z.string().describe("The MongoDB _id of the listing the user wants to apply to"),
+      listingTitle: z.string().describe("The title/name of the listing for display purposes"),
+    }),
+  },
+];

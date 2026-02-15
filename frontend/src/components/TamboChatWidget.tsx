@@ -4,7 +4,7 @@
  * Renders assistant responses with proper markdown formatting.
  */
 
-import { useState, useRef, useEffect, type FormEvent } from "react";
+import React, { useState, useRef, useEffect, type FormEvent } from "react";
 import { MessageCircle, X, Send, Loader2, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -73,14 +73,14 @@ The user is currently viewing this specific property listing:
 - No Bankruptcy Required: ${propertyData.screeningCriteria?.noBankruptcy ? 'Yes' : 'No'}
 - No Criminal Record Required: ${propertyData.screeningCriteria?.noCriminal ? 'Yes' : 'No'}
 
-Answer questions about this property using the above data. Be specific with numbers, details, and facts. Use markdown formatting with **bold**, bullet points, and clear structure. If the user asks about applying, explain TrustKey's screening process.`,
+Answer questions about this property using the above data. Be specific with numbers, details, and facts. Use markdown formatting with **bold**, bullet points, and clear structure. If the user wants to apply to this property, DO NOT ask them for details in text. Instead, use the ApplicationForm component with listingId="${propertyData._id}" and listingTitle="${propertyData.title}". The form will collect their details (first name, last name, date of birth, email) and handle the application submission automatically.`,
           displayName: `Property: ${propertyData.title}`,
         });
       }
     } else {
       // General platform context with all listings
       const listingSummaries = allListings.map((l) =>
-        `- **${l.title}** at ${l.address}, ${l.city}, ${l.state} — $${l.price.toLocaleString()}${l.listingType === 'rent' ? '/mo' : ''} (${l.listingType === 'rent' ? 'Rent' : 'Sale'}) | ${l.bedrooms} bed, ${l.bathrooms} bath, ${l.sqft} sqft`
+        `- **${l.title}** (id: ${l._id}) at ${l.address}, ${l.city}, ${l.state} — $${l.price.toLocaleString()}${l.listingType === 'rent' ? '/mo' : ''} (${l.listingType === 'rent' ? 'Rent' : 'Sale'}) | ${l.bedrooms} bed, ${l.bathrooms} bath, ${l.sqft} sqft`
       ).join('\n');
 
       addContextAttachment({
@@ -111,7 +111,9 @@ ${listingSummaries || 'No listings available at the moment.'}
 4. **Apply** to a property — your credit gets screened instantly
 5. **View results** — sellers see your match score on their dashboard
 
-Answer user questions helpfully. If they ask about specific properties, reference the listings above. If they ask general real estate questions, answer using your knowledge. Always use markdown formatting with **bold text**, bullet points, headings, and clear structure.`,
+Answer user questions helpfully. If they ask about specific properties, reference the listings above. If they ask general real estate questions, answer using your knowledge. Always use markdown formatting with **bold text**, bullet points, headings, and clear structure.
+
+IMPORTANT: When a user wants to apply to a specific listing, DO NOT ask them for details in text. Instead, use the ApplicationForm component with the listing's _id as listingId and its title as listingTitle. The form will collect their details and handle submission automatically.`,
         displayName: "TrustKey Platform",
       });
     }
@@ -127,6 +129,7 @@ Answer user questions helpfully. If they ask about specific properties, referenc
     }
   };
 
+  /** Extract plain text from a message's content blocks. */
   const extractTextContent = (content: any): string => {
     if (Array.isArray(content)) {
       return content
@@ -138,6 +141,14 @@ Answer user questions helpfully. If they ask about specific properties, referenc
         .join("");
     }
     return typeof content === "string" ? content : "";
+  };
+
+  /** Extract rendered Tambo components from a message's content blocks. */
+  const extractRenderedComponents = (content: any): React.ReactElement[] => {
+    if (!Array.isArray(content)) return [];
+    return content
+      .filter((c: any) => c && typeof c === "object" && "renderedComponent" in c && c.renderedComponent)
+      .map((c: any) => c.renderedComponent);
   };
 
   return (
@@ -219,72 +230,84 @@ Answer user questions helpfully. If they ask about specific properties, referenc
                   {/* Render messages */}
                   {messages.map((m, i) => {
                     const textContent = extractTextContent(m.content);
+                    const renderedComponents = extractRenderedComponents(m.content);
                     const isUser = m.role === "user";
 
                     return (
-                      <div
-                        key={i}
-                        className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-                      >
-                        <div
-                          className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-                            isUser
-                              ? "rounded-br-md bg-primary text-primary-foreground"
-                              : "rounded-bl-md bg-muted text-foreground"
-                          }`}
-                        >
-                          {isUser ? (
-                            textContent
-                          ) : (
-                            <div className="tambo-markdown">
-                              <ReactMarkdown
-                                components={{
-                                  h1: ({ children }) => (
-                                    <h1 className="mb-2 mt-1 text-base font-bold">{children}</h1>
-                                  ),
-                                  h2: ({ children }) => (
-                                    <h2 className="mb-2 mt-1 text-sm font-bold">{children}</h2>
-                                  ),
-                                  h3: ({ children }) => (
-                                    <h3 className="mb-1 mt-1 text-sm font-semibold">{children}</h3>
-                                  ),
-                                  p: ({ children }) => (
-                                    <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
-                                  ),
-                                  ul: ({ children }) => (
-                                    <ul className="mb-2 ml-4 list-disc space-y-1 last:mb-0">{children}</ul>
-                                  ),
-                                  ol: ({ children }) => (
-                                    <ol className="mb-2 ml-4 list-decimal space-y-1 last:mb-0">{children}</ol>
-                                  ),
-                                  li: ({ children }) => (
-                                    <li className="leading-relaxed">{children}</li>
-                                  ),
-                                  strong: ({ children }) => (
-                                    <strong className="font-semibold">{children}</strong>
-                                  ),
-                                  em: ({ children }) => (
-                                    <em className="italic">{children}</em>
-                                  ),
-                                  code: ({ children }) => (
-                                    <code className="rounded bg-background/50 px-1 py-0.5 text-xs font-mono">{children}</code>
-                                  ),
-                                  blockquote: ({ children }) => (
-                                    <blockquote className="mb-2 border-l-2 border-border pl-3 italic text-muted-foreground">{children}</blockquote>
-                                  ),
-                                  hr: () => (
-                                    <hr className="my-2 border-border" />
-                                  ),
-                                  a: ({ children, href }) => (
-                                    <a href={href} className="underline hover:opacity-80" target="_blank" rel="noopener noreferrer">{children}</a>
-                                  ),
-                                }}
-                              >
-                                {textContent}
-                              </ReactMarkdown>
+                      <div key={i} className="space-y-2">
+                        {/* Text content */}
+                        {textContent && (
+                          <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+                            <div
+                              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+                                isUser
+                                  ? "rounded-br-md bg-primary text-primary-foreground"
+                                  : "rounded-bl-md bg-muted text-foreground"
+                              }`}
+                            >
+                              {isUser ? (
+                                textContent
+                              ) : (
+                                <div className="tambo-markdown">
+                                  <ReactMarkdown
+                                    components={{
+                                      h1: ({ children }) => (
+                                        <h1 className="mb-2 mt-1 text-base font-bold">{children}</h1>
+                                      ),
+                                      h2: ({ children }) => (
+                                        <h2 className="mb-2 mt-1 text-sm font-bold">{children}</h2>
+                                      ),
+                                      h3: ({ children }) => (
+                                        <h3 className="mb-1 mt-1 text-sm font-semibold">{children}</h3>
+                                      ),
+                                      p: ({ children }) => (
+                                        <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+                                      ),
+                                      ul: ({ children }) => (
+                                        <ul className="mb-2 ml-4 list-disc space-y-1 last:mb-0">{children}</ul>
+                                      ),
+                                      ol: ({ children }) => (
+                                        <ol className="mb-2 ml-4 list-decimal space-y-1 last:mb-0">{children}</ol>
+                                      ),
+                                      li: ({ children }) => (
+                                        <li className="leading-relaxed">{children}</li>
+                                      ),
+                                      strong: ({ children }) => (
+                                        <strong className="font-semibold">{children}</strong>
+                                      ),
+                                      em: ({ children }) => (
+                                        <em className="italic">{children}</em>
+                                      ),
+                                      code: ({ children }) => (
+                                        <code className="rounded bg-background/50 px-1 py-0.5 text-xs font-mono">{children}</code>
+                                      ),
+                                      blockquote: ({ children }) => (
+                                        <blockquote className="mb-2 border-l-2 border-border pl-3 italic text-muted-foreground">{children}</blockquote>
+                                      ),
+                                      hr: () => (
+                                        <hr className="my-2 border-border" />
+                                      ),
+                                      a: ({ children, href }) => (
+                                        <a href={href} className="underline hover:opacity-80" target="_blank" rel="noopener noreferrer">{children}</a>
+                                      ),
+                                    }}
+                                  >
+                                    {textContent}
+                                  </ReactMarkdown>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
+
+                        {/* Rendered Tambo components (e.g. ApplicationForm) */}
+                        {renderedComponents.map((comp, j) => (
+                          <div key={`comp-${j}`} className="flex justify-start">
+                            <div className="w-full max-w-[95%]">
+                              {comp}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     );
                   })}
