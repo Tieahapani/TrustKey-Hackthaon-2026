@@ -38,23 +38,29 @@ function loadServiceAccount() {
 }
 
 // Lazy initialization — ensures Firebase is ready before verifying tokens
+let initError = null;
 function ensureFirebaseInitialized() {
   if (admin.apps.length) return true;
+  if (initError) return false; // Already tried and failed
 
   const serviceAccount = loadServiceAccount();
   if (!serviceAccount) {
-    console.error('FIREBASE_SERVICE_ACCOUNT not set — auth will not work');
+    initError = 'No service account loaded';
+    console.error('Firebase: no service account found. B64 set:', !!process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'JSON set:', !!process.env.FIREBASE_SERVICE_ACCOUNT);
     return false;
   }
+
+  console.log('Firebase: loaded service account for project:', serviceAccount.project_id, 'client_email:', serviceAccount.client_email);
 
   try {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-    console.log('Firebase Admin initialized for project:', serviceAccount.project_id);
+    console.log('Firebase Admin initialized successfully');
     return true;
   } catch (err) {
-    console.error('Firebase Admin init failed:', err.message);
+    initError = err.message;
+    console.error('Firebase Admin init failed:', err.message, err.stack);
     return false;
   }
 }
