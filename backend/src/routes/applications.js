@@ -81,7 +81,17 @@ router.post('/', verifyToken, async (req, res) => {
       screenedAt: new Date(),
     });
 
-    res.status(201).json(application);
+    // Return only non-sensitive fields to the buyer
+    res.status(201).json({
+      _id: application._id,
+      listingId: application.listingId,
+      buyerId: application.buyerId,
+      status: application.status,
+      buyerInfo: application.buyerInfo,
+      consentGiven: application.consentGiven,
+      screenedAt: application.screenedAt,
+      createdAt: application.createdAt,
+    });
   } catch (err) {
     if (err.code === 11000) {
       return res.status(409).json({ error: 'You have already applied to this listing' });
@@ -129,7 +139,13 @@ router.get('/mine', verifyToken, async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    res.json(applications);
+    // Strip CRS screening data from buyer view — only sellers see this
+    const sanitized = applications.map(({ crsData, matchBreakdown, matchScore, matchColor, totalPoints, earnedPoints, ...rest }) => ({
+      ...rest,
+      // Keep status so the buyer can see pending/screened/approved/rejected
+    }));
+
+    res.json(sanitized);
   } catch (err) {
     console.error('Get my applications error:', err);
     res.status(500).json({ error: 'Failed to fetch applications' });

@@ -22,39 +22,33 @@ const { pullComprehensiveReport, calculateMatchScore } = require('./services/crs
 /*  Demo buyer profiles                                                */
 /* ------------------------------------------------------------------ */
 
-// These names match the 5 TEST_PERSONAS in services/crs.js
-// so each buyer gets deterministic, varied screening results.
+// Demo buyer profiles — CRS sandbox API provides screening data.
+// Results vary based on round-robin CRS test identities + real FBI name check.
 const DEMO_BUYERS = [
-  {
-    email: 'alice.morgan@trustkey.app',
-    name: 'Alice Morgan',
-    phone: '(555) 111-2233',
-    buyerInfo: { firstName: 'Alice', lastName: 'Morgan', dob: '1991-03-15', email: 'alice.morgan@trustkey.app' },
-  },
-  {
-    email: 'bob.martinez@trustkey.app',
-    name: 'Bob Martinez',
-    phone: '(555) 222-3344',
-    buyerInfo: { firstName: 'Bob', lastName: 'Martinez', dob: '1985-07-22', email: 'bob.martinez@trustkey.app' },
-  },
-  {
-    email: 'charlie.kumar@trustkey.app',
-    name: 'Charlie Kumar',
-    phone: '(555) 333-4455',
-    buyerInfo: { firstName: 'Charlie', lastName: 'Kumar', dob: '1993-11-08', email: 'charlie.kumar@trustkey.app' },
-  },
-  {
-    email: 'diana.ross@trustkey.app',
-    name: 'Diana Ross',
-    phone: '(555) 444-5566',
-    buyerInfo: { firstName: 'Diana', lastName: 'Ross', dob: '1988-01-30', email: 'diana.ross@trustkey.app' },
-  },
-  {
-    email: 'evan.blackwell@trustkey.app',
-    name: 'Evan Blackwell',
-    phone: '(555) 555-6677',
-    buyerInfo: { firstName: 'Evan', lastName: 'Blackwell', dob: '1990-09-12', email: 'evan.blackwell@trustkey.app' },
-  },
+  // GREEN TIER
+  { email: 'alice.morgan@trustkey.app', name: 'Alice Morgan', phone: '(555) 111-2233', buyerInfo: { firstName: 'Alice', lastName: 'Morgan', dob: '1991-03-15', email: 'alice.morgan@trustkey.app' } },
+  { email: 'fiona.chen@trustkey.app', name: 'Fiona Chen', phone: '(555) 111-3344', buyerInfo: { firstName: 'Fiona', lastName: 'Chen', dob: '1994-06-20', email: 'fiona.chen@trustkey.app' } },
+  { email: 'hannah.patel@trustkey.app', name: 'Hannah Patel', phone: '(555) 111-4455', buyerInfo: { firstName: 'Hannah', lastName: 'Patel', dob: '1989-12-05', email: 'hannah.patel@trustkey.app' } },
+  { email: 'laura.simmons@trustkey.app', name: 'Laura Simmons', phone: '(555) 111-5566', buyerInfo: { firstName: 'Laura', lastName: 'Simmons', dob: '1992-04-18', email: 'laura.simmons@trustkey.app' } },
+  { email: 'quinn.foster@trustkey.app', name: 'Quinn Foster', phone: '(555) 111-6677', buyerInfo: { firstName: 'Quinn', lastName: 'Foster', dob: '1987-08-22', email: 'quinn.foster@trustkey.app' } },
+  { email: 'samuel.wright@trustkey.app', name: 'Samuel Wright', phone: '(555) 111-7788', buyerInfo: { firstName: 'Samuel', lastName: 'Wright', dob: '1990-02-14', email: 'samuel.wright@trustkey.app' } },
+  // YELLOW TIER
+  { email: 'bob.martinez@trustkey.app', name: 'Bob Martinez', phone: '(555) 222-3344', buyerInfo: { firstName: 'Bob', lastName: 'Martinez', dob: '1985-07-22', email: 'bob.martinez@trustkey.app' } },
+  { email: 'diana.ross@trustkey.app', name: 'Diana Ross', phone: '(555) 222-4455', buyerInfo: { firstName: 'Diana', lastName: 'Ross', dob: '1988-01-30', email: 'diana.ross@trustkey.app' } },
+  { email: 'julia.white@trustkey.app', name: 'Julia White', phone: '(555) 222-5566', buyerInfo: { firstName: 'Julia', lastName: 'White', dob: '1993-09-11', email: 'julia.white@trustkey.app' } },
+  { email: 'kevin.brooks@trustkey.app', name: 'Kevin Brooks', phone: '(555) 222-6677', buyerInfo: { firstName: 'Kevin', lastName: 'Brooks', dob: '1986-05-03', email: 'kevin.brooks@trustkey.app' } },
+  { email: 'nina.garcia@trustkey.app', name: 'Nina Garcia', phone: '(555) 222-7788', buyerInfo: { firstName: 'Nina', lastName: 'Garcia', dob: '1991-11-27', email: 'nina.garcia@trustkey.app' } },
+  // RED TIER
+  { email: 'charlie.kumar@trustkey.app', name: 'Charlie Kumar', phone: '(555) 333-4455', buyerInfo: { firstName: 'Charlie', lastName: 'Kumar', dob: '1993-11-08', email: 'charlie.kumar@trustkey.app' } },
+  { email: 'greg.thompson@trustkey.app', name: 'Greg Thompson', phone: '(555) 333-5566', buyerInfo: { firstName: 'Greg', lastName: 'Thompson', dob: '1984-03-25', email: 'greg.thompson@trustkey.app' } },
+  { email: 'isaac.nguyen@trustkey.app', name: 'Isaac Nguyen', phone: '(555) 333-6677', buyerInfo: { firstName: 'Isaac', lastName: 'Nguyen', dob: '1996-07-19', email: 'isaac.nguyen@trustkey.app' } },
+  { email: 'marcus.davis@trustkey.app', name: 'Marcus Davis', phone: '(555) 333-7788', buyerInfo: { firstName: 'Marcus', lastName: 'Davis', dob: '1982-10-12', email: 'marcus.davis@trustkey.app' } },
+  { email: 'patricia.young@trustkey.app', name: 'Patricia Young', phone: '(555) 333-8899', buyerInfo: { firstName: 'Patricia', lastName: 'Young', dob: '1990-06-08', email: 'patricia.young@trustkey.app' } },
+  { email: 'rachel.kim@trustkey.app', name: 'Rachel Kim', phone: '(555) 333-9900', buyerInfo: { firstName: 'Rachel', lastName: 'Kim', dob: '1995-01-15', email: 'rachel.kim@trustkey.app' } },
+  { email: 'tanya.mitchell@trustkey.app', name: 'Tanya Mitchell', phone: '(555) 333-0011', buyerInfo: { firstName: 'Tanya', lastName: 'Mitchell', dob: '1988-04-30', email: 'tanya.mitchell@trustkey.app' } },
+  // FBI MATCH TIER
+  { email: 'evan.blackwell@trustkey.app', name: 'Evan Blackwell', phone: '(555) 444-5566', buyerInfo: { firstName: 'Evan', lastName: 'Blackwell', dob: '1990-09-12', email: 'evan.blackwell@trustkey.app' } },
+  { email: 'oscar.lee@trustkey.app', name: 'Oscar Lee', phone: '(555) 444-6677', buyerInfo: { firstName: 'Oscar', lastName: 'Lee', dob: '1983-12-01', email: 'oscar.lee@trustkey.app' } },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -62,13 +56,33 @@ const DEMO_BUYERS = [
 /*  (indices into the listings array sorted by creation date)          */
 /* ------------------------------------------------------------------ */
 
-// Each buyer applies to 3-4 listings for good coverage
+// Each buyer applies to 2-4 listings for good coverage
+// Indices refer to listings sorted by creation date
 const BUYER_LISTING_MAP = [
-  [0, 2, 5, 10],   // Alice Morgan    (excellent) → variety of listings
-  [1, 3, 6, 8],    // Bob Martinez    (fair)      → some will pass, some won't
-  [4, 7, 9, 11],   // Charlie Kumar   (poor)      → mostly red
-  [0, 4, 8],       // Diana Ross      (good)      → bankruptcy will fail some
-  [2, 6, 10, 11],  // Evan Blackwell  (FBI match) → all 0/100
+  // GREEN TIER
+  [0, 2, 5, 10],   //  0 Alice Morgan    — excellent
+  [1, 4, 8],       //  1 Fiona Chen      — perfect
+  [2, 6, 11],      //  2 Hannah Patel    — excellent
+  [0, 3, 7],       //  3 Laura Simmons   — excellent
+  [1, 5, 9],       //  4 Quinn Foster    — excellent
+  [3, 6, 10],      //  5 Samuel Wright   — good
+  // YELLOW TIER
+  [1, 3, 6, 8],    //  6 Bob Martinez    — 1 criminal
+  [0, 4, 8],       //  7 Diana Ross      — 1 bankruptcy
+  [2, 5, 9],       //  8 Julia White     — 1 eviction
+  [0, 7, 11],      //  9 Kevin Brooks    — high fraud
+  [3, 6, 10],      // 10 Nina Garcia     — 1 criminal
+  // RED TIER
+  [4, 7, 9, 11],   // 11 Charlie Kumar   — everything bad
+  [1, 5, 8],       // 12 Greg Thompson   — eviction + criminal
+  [0, 3, 10],      // 13 Isaac Nguyen    — bankruptcy + criminal
+  [2, 6, 11],      // 14 Marcus Davis    — 3 evictions, 2 bankruptcies
+  [1, 4, 7],       // 15 Patricia Young  — eviction + bankruptcy
+  [0, 5, 9],       // 16 Rachel Kim      — 2 criminal, high fraud
+  [3, 8, 11],      // 17 Tanya Mitchell  — everything bad
+  // FBI TIER
+  [2, 6, 10, 11],  // 18 Evan Blackwell  — FBI armed robbery
+  [0, 4, 8],       // 19 Oscar Lee       — FBI wire fraud
 ];
 
 /* ------------------------------------------------------------------ */
@@ -130,7 +144,7 @@ async function seedApplications() {
       console.log('─'.repeat(60));
 
       // Pull CRS report once per buyer (reuse for all their applications)
-      // Names match TEST_PERSONAS in crs.js — each gets deterministic data
+      // CRS sandbox API called — results vary by round-robin test identity
       console.log(`\nPulling CRS screening data for ${buyer.name}...`);
       const crsData = await pullComprehensiveReport(buyer.buyerInfo);
 

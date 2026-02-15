@@ -12,12 +12,35 @@ const s3Client = new S3Client({
   forcePathStyle: true, // Required for Vultr Object Storage
 });
 
+const bucket = process.env.VULTR_BUCKET_NAME || 'homescreen';
+const endpoint = process.env.VULTR_ENDPOINT || 'https://ewr1.vultrobjects.com';
+
+/**
+ * Upload a file buffer directly to Vultr Object Storage.
+ * Returns the public URL of the uploaded file.
+ */
+async function uploadFile(buffer, originalName, mimeType) {
+  const ext = originalName.split('.').pop() || 'jpg';
+  const key = `listings/${crypto.randomUUID()}.${ext}`;
+
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: mimeType,
+      ACL: 'public-read',
+    })
+  );
+
+  return `${endpoint}/${bucket}/${key}`;
+}
+
 /**
  * Generate a presigned URL for direct upload to Vultr Object Storage.
  * Returns { uploadUrl, fileUrl, key }
  */
 async function getPresignedUploadUrl(fileName, fileType) {
-  const bucket = process.env.VULTR_BUCKET_NAME || 'homescreen';
   const ext = fileName.split('.').pop();
   const key = `listings/${crypto.randomUUID()}.${ext}`;
 
@@ -28,11 +51,9 @@ async function getPresignedUploadUrl(fileName, fileType) {
   });
 
   const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 }); // 5 min
-
-  const endpoint = process.env.VULTR_ENDPOINT || 'https://ewr1.vultrobjects.com';
   const fileUrl = `${endpoint}/${bucket}/${key}`;
 
   return { uploadUrl, fileUrl, key };
 }
 
-module.exports = { getPresignedUploadUrl };
+module.exports = { uploadFile, getPresignedUploadUrl };

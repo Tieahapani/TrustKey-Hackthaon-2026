@@ -18,7 +18,6 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Shield,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -91,20 +90,6 @@ function StatusIcon({ status }: { status: Application["status"] }) {
   }
 }
 
-/** Tailwind stroke class for the circular score ring. */
-function scoreStrokeClass(color: Application["matchColor"]): string {
-  if (color === "green") return "stroke-green-500";
-  if (color === "yellow") return "stroke-amber-500";
-  return "stroke-red-500";
-}
-
-/** Tailwind text class for the numeric score display. */
-function scoreTextClass(color: Application["matchColor"]): string {
-  if (color === "green") return "text-green-600 dark:text-green-400";
-  if (color === "yellow") return "text-amber-600 dark:text-amber-400";
-  return "text-red-600 dark:text-red-400";
-}
-
 /** Format an ISO date string to a readable form. */
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -134,14 +119,7 @@ function ApplicationsSkeleton() {
                   </div>
                   <Skeleton className="h-6 w-20 rounded-full" />
                 </div>
-                <div className="flex items-center gap-6">
-                  <Skeleton className="h-16 w-16 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-3 w-4/5" />
-                    <Skeleton className="h-3 w-3/5" />
-                  </div>
-                </div>
+                <Skeleton className="h-12 w-full rounded-lg" />
                 <div className="flex items-center justify-between">
                   <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-9 w-24 rounded-md" />
@@ -151,54 +129,6 @@ function ApplicationsSkeleton() {
           </CardContent>
         </Card>
       ))}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Circular match-score indicator                                     */
-/* ------------------------------------------------------------------ */
-
-function MatchScoreRing({
-  score,
-  color,
-}: {
-  score: number;
-  color: Application["matchColor"];
-}) {
-  const circumference = 2 * Math.PI * 38; // r = 38
-  const dashLen = (score / 100) * circumference;
-
-  return (
-    <div className="relative h-16 w-16 shrink-0">
-      <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-        <circle
-          cx="50"
-          cy="50"
-          r="38"
-          fill="none"
-          strokeWidth="7"
-          className="stroke-muted/30"
-        />
-        <motion.circle
-          cx="50"
-          cy="50"
-          r="38"
-          fill="none"
-          strokeWidth="7"
-          strokeLinecap="round"
-          className={scoreStrokeClass(color)}
-          initial={{ strokeDasharray: `0 ${circumference}` }}
-          animate={{ strokeDasharray: `${dashLen} ${circumference}` }}
-          transition={{ duration: 1, ease: "easeOut" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`text-sm font-bold leading-none ${scoreTextClass(color)}`}>
-          {score}
-        </span>
-        <span className="text-[9px] text-muted-foreground">/100</span>
-      </div>
     </div>
   );
 }
@@ -481,47 +411,24 @@ export default function MyApplications() {
                               </Badge>
                             </div>
 
-                            {/* Middle row: score ring + CRS data */}
-                            <div className="mt-4 flex items-center gap-5">
-                              <MatchScoreRing
-                                score={app.matchScore}
-                                color={app.matchColor}
-                              />
-
-                              <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-4">
-                                <div>
-                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                                    Credit
-                                  </p>
-                                  <p className="font-semibold text-foreground">
-                                    {app.crsData?.creditScore ?? "--"}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                                    Evictions
-                                  </p>
-                                  <p className="font-semibold text-foreground">
-                                    {app.crsData?.evictions ?? "--"}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                                    Bankruptcies
-                                  </p>
-                                  <p className="font-semibold text-foreground">
-                                    {app.crsData?.bankruptcies ?? "--"}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                                    Criminal
-                                  </p>
-                                  <p className="font-semibold text-foreground">
-                                    {app.crsData?.criminalOffenses ?? "--"}
-                                  </p>
-                                </div>
-                              </div>
+                            {/* Middle row: status message */}
+                            <div className="mt-4 rounded-lg bg-muted/50 p-3">
+                              {app.status === "approved" ? (
+                                <p className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                                  Congratulations! The seller has approved your application.
+                                </p>
+                              ) : app.status === "rejected" ? (
+                                <p className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                                  <XCircle className="h-4 w-4 shrink-0" />
+                                  Unfortunately, the seller did not approve your application at this time.
+                                </p>
+                              ) : (
+                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Clock className="h-4 w-4 shrink-0" />
+                                  Thank you for your interest in this property. We will let you know the seller's decision as soon as they make one.
+                                </p>
+                              )}
                             </div>
 
                             {/* Bottom row: date + actions */}

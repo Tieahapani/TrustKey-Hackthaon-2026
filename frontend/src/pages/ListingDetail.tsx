@@ -297,14 +297,14 @@ export default function ListingDetail() {
               </motion.div>
             )}
 
-            {applyState === "success" && applyResult && (
-              <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-4 text-center py-4">
-                <div className="flex justify-center">
-                  <ScreeningBadge score={applyResult.matchScore} size="lg" />
+            {applyState === "success" && (
+              <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-4 text-center py-6">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                  <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="font-display text-xl font-semibold text-foreground">Application Submitted!</h3>
-                <p className="text-sm text-muted-foreground">
-                  Your match score is {applyResult.matchScore}/100. The landlord will review your application and reach out soon.
+                <h3 className="font-display text-xl font-semibold text-foreground">Thank You for Applying!</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Thank you for your application and your interest in this property. We will let you know the decision from the seller as soon as they make one.
                 </p>
                 <Button className="w-full" onClick={() => { setApplyOpen(false); setApplyState("form"); setApplyForm({ lastName: "", firstName: "", dob: "", email: "" }); setApplyResult(null); }}>
                   Done

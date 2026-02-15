@@ -140,7 +140,7 @@ export default function Index() {
             className="mt-4 text-lg text-white/90"
             style={{ textShadow: "0 1px 4px rgba(0,0,0,0.2)" }}
           >
-            AI-powered screening, instant credit checks, and a smart assistant for every listing.
+            Comprehensive risk screening, instant credit checks, and a smart assistant for every listing.
           </motion.p>
 
           {/* Search bar */}

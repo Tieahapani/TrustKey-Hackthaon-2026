@@ -196,7 +196,6 @@ export const uploadImages = (files: File[]) => {
   files.forEach((f) => form.append("photos", f));
   return api
     .post<{ urls: string[] }>("/api/upload/images", form, {
-      headers: { "Content-Type": "multipart/form-data" },
       timeout: 60000,
     })
     .then((r) => r.data.urls);
