@@ -4,7 +4,17 @@ const path = require('path');
 
 // Load service account: supports base64, file path, or raw JSON string
 function loadServiceAccount() {
-  // Try base64-encoded value first (most reliable for Vercel)
+  // Try individual env vars first (most reliable for Vercel)
+  if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    return {
+      type: 'service_account',
+      project_id: process.env.FIREBASE_PROJECT_ID,
+      client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    };
+  }
+
+  // Try base64-encoded value
   const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
   if (b64) {
     try {
