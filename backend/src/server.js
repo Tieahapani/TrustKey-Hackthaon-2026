@@ -34,17 +34,37 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Connect to MongoDB (cached across serverless invocations)
 let dbReady = null;
-if (process.env.NODE_ENV !== 'test' && process.env.MONGODB_URI) {
-  dbReady = mongoose.connect(process.env.MONGODB_URI)
+function connectDB() {
+  if (mongoose.connection.readyState === 1) return Promise.resolve();
+  if (mongoose.connection.readyState === 2) return dbReady; // connecting
+  dbReady = mongoose.connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+  })
     .then(() => console.log('Connected to MongoDB Atlas'))
-    .catch((err) => console.error('MongoDB connection error:', err));
+    .catch((err) => {
+      console.error('MongoDB connection error:', err);
+      dbReady = null; // allow retry on next request
+      throw err;
+    });
+  return dbReady;
+}
+
+if (process.env.NODE_ENV !== 'test' && process.env.MONGODB_URI) {
+  connectDB();
 } else if (!process.env.MONGODB_URI && process.env.NODE_ENV !== 'test') {
   console.warn('MONGODB_URI not set — running without database');
 }
 
 // Ensure DB is connected before handling requests (needed for serverless)
 app.use(async (req, res, next) => {
-  if (dbReady) await dbReady;
+  if (process.env.NODE_ENV !== 'test' && process.env.MONGODB_URI) {
+    try {
+      await connectDB();
+    } catch (err) {
+      return res.status(503).json({ error: 'Database unavailable' });
+    }
+  }
   next();
 });
 
