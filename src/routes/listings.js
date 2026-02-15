@@ -40,8 +40,8 @@ router.get('/', async (req, res) => {
 router.get('/seller/mine', verifyToken, async (req, res) => {
   try {
     const user = await User.findOne({ firebaseUid: req.user.uid });
-    if (!user || user.role !== 'seller') {
-      return res.status(403).json({ error: 'Only sellers can view their listings' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const listings = await Listing.find({ sellerId: user._id })
@@ -77,8 +77,8 @@ router.get('/:id', async (req, res) => {
 router.post('/', verifyToken, async (req, res) => {
   try {
     const user = await User.findOne({ firebaseUid: req.user.uid });
-    if (!user || user.role !== 'seller') {
-      return res.status(403).json({ error: 'Only sellers can create listings' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const listing = await Listing.create({

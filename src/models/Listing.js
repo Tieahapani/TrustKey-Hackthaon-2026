@@ -64,7 +64,6 @@ const listingSchema = new mongoose.Schema({
     noEvictions: { type: Boolean, default: false },
     noBankruptcy: { type: Boolean, default: false },
     noCriminal: { type: Boolean, default: false },
-    noFraud: { type: Boolean, default: false },
   },
   status: {
     type: String,
