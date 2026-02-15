@@ -1,4 +1,4 @@
-const { ElevenLabsClient } = require('@elevenlabs/elevenlabs-js');
+const { ElevenLabsClient } = require('elevenlabs');
 
 let client = null;
 

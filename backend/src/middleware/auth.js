@@ -2,8 +2,28 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 
-// Load service account: supports file path or raw JSON string
+// Load service account: supports base64, file path, or raw JSON string
 function loadServiceAccount() {
+  // Try individual env vars first (most reliable for Vercel)
+  if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    return {
+      type: 'service_account',
+      project_id: process.env.FIREBASE_PROJECT_ID,
+      client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    };
+  }
+
+  // Try base64-encoded value
+  const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+  if (b64) {
+    try {
+      return JSON.parse(Buffer.from(b64, 'base64').toString('utf8'));
+    } catch (e) {
+      console.warn('FIREBASE_SERVICE_ACCOUNT_BASE64 invalid');
+    }
+  }
+
   const val = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (!val) return null;
 
@@ -27,20 +47,31 @@ function loadServiceAccount() {
   }
 }
 
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
+// Lazy initialization — ensures Firebase is ready before verifying tokens
+let initError = null;
+function ensureFirebaseInitialized() {
+  if (admin.apps.length) return true;
+  if (initError) return false; // Already tried and failed
+
   const serviceAccount = loadServiceAccount();
-  if (serviceAccount) {
-    try {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    } catch (err) {
-      console.warn('Firebase Admin init failed:', err.message);
-      admin.initializeApp();
-    }
-  } else {
-    console.warn('FIREBASE_SERVICE_ACCOUNT not set — auth will not work');
+  if (!serviceAccount) {
+    initError = 'No service account loaded';
+    console.error('Firebase: no service account found. B64 set:', !!process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'JSON set:', !!process.env.FIREBASE_SERVICE_ACCOUNT);
+    return false;
+  }
+
+  console.log('Firebase: loaded service account for project:', serviceAccount.project_id, 'client_email:', serviceAccount.client_email);
+
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    console.log('Firebase Admin initialized successfully');
+    return true;
+  } catch (err) {
+    initError = err.message;
+    console.error('Firebase Admin init failed:', err.message, err.stack);
+    return false;
   }
 }
 
@@ -54,12 +85,17 @@ async function verifyToken(req, res, next) {
     return res.status(401).json({ error: 'No token provided' });
   }
 
+  if (!ensureFirebaseInitialized()) {
+    return res.status(500).json({ error: 'Auth service not configured' });
+  }
+
   const token = header.split('Bearer ')[1];
   try {
     const decoded = await admin.auth().verifyIdToken(token);
     req.user = { uid: decoded.uid, email: decoded.email };
     next();
   } catch (err) {
+    console.error('Token verification failed:', err.code, err.message);
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
@@ -72,6 +108,11 @@ async function optionalAuth(req, res, next) {
   if (!header || !header.startsWith('Bearer ')) {
     return next();
   }
+
+  if (!ensureFirebaseInitialized()) {
+    return next();
+  }
+
   const token = header.split('Bearer ')[1];
   try {
     const decoded = await admin.auth().verifyIdToken(token);

@@ -22,6 +22,22 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
+// Connect to MongoDB (cached across serverless invocations)
+let dbReady = null;
+if (process.env.MONGODB_URI) {
+  dbReady = mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB Atlas'))
+    .catch((err) => console.error('MongoDB connection error:', err));
+} else {
+  console.warn('MONGODB_URI not set — running without database');
+}
+
+// Ensure DB is connected before handling requests (needed for serverless)
+app.use(async (req, res, next) => {
+  if (dbReady) await dbReady;
+  next();
+});
+
 // Routes
 const listingsRouter = require('./routes/listings');
 const applicationsRouter = require('./routes/applications');
@@ -37,26 +53,24 @@ app.use('/api/users', usersRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    env: {
+      hasMongoUri: !!process.env.MONGODB_URI,
+      hasFirebaseIndividual: !!(process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY),
+      hasFirebaseJson: !!process.env.FIREBASE_SERVICE_ACCOUNT,
+      firebaseProjectId: process.env.FIREBASE_PROJECT_ID || null,
+    },
+  });
 });
 
-// Connect to MongoDB and start server
-async function start() {
-  try {
-    if (process.env.MONGODB_URI) {
-      await mongoose.connect(process.env.MONGODB_URI);
-      console.log('Connected to MongoDB Atlas');
-    } else {
-      console.warn('MONGODB_URI not set — running without database');
-    }
-
-    app.listen(PORT, () => {
-      console.log(`HomeScreen API running on http://localhost:${PORT}`);
-    });
-  } catch (err) {
-    console.error('Failed to start server:', err);
-    process.exit(1);
-  }
+// Start server only when running locally (not on Vercel)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`HomeScreen API running on http://localhost:${PORT}`);
+  });
 }
 
-start();
+// Export for Vercel serverless
+module.exports = app;
