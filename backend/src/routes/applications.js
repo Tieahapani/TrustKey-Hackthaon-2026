@@ -20,6 +20,10 @@ router.post('/', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'listingId and consent are required' });
     }
 
+    if (!buyerInfo?.firstName || !buyerInfo?.lastName || !buyerInfo?.dob || !buyerInfo?.email) {
+      return res.status(400).json({ error: 'buyerInfo requires firstName, lastName, dob, and email' });
+    }
+
     const listing = await Listing.findById(listingId);
     if (!listing) {
       return res.status(404).json({ error: 'Listing not found' });
@@ -31,19 +35,22 @@ router.post('/', verifyToken, async (req, res) => {
       return res.status(409).json({ error: 'You have already applied to this listing' });
     }
 
-    // Pull credit report from CRS
-    const crsData = await pullCreditReport(buyerInfo || {});
+    // Pull credit report from CRS using buyer's identity info
+    const crsData = await pullCreditReport(buyerInfo);
 
     // Calculate match score against seller's criteria
-    const criteria = {
-      ...listing.screeningCriteria.toObject(),
-      rentAmount: listing.listingType === 'rent' ? listing.price : 0,
-    };
+    const criteria = listing.screeningCriteria.toObject();
     const { matchScore, matchBreakdown, matchColor } = calculateMatchScore(crsData, criteria);
 
     const application = await Application.create({
       listingId,
       buyerId: user._id,
+      buyerInfo: {
+        firstName: buyerInfo.firstName,
+        lastName: buyerInfo.lastName,
+        dob: buyerInfo.dob,
+        email: buyerInfo.email,
+      },
       status: 'screened',
       crsData,
       matchScore,

@@ -18,9 +18,10 @@ const applicationSchema = new mongoose.Schema({
   },
   crsData: {
     creditScore: { type: Number, default: 0 },
-    income: { type: Number, default: 0 },
     evictions: { type: Number, default: 0 },
     bankruptcies: { type: Number, default: 0 },
+    criminalRecords: { type: Number, default: 0 },
+    fraudFlag: { type: Boolean, default: false },
   },
   matchScore: {
     type: Number,
@@ -28,12 +29,14 @@ const applicationSchema = new mongoose.Schema({
     min: 0,
     max: 100,
   },
+  buyerInfo: {
+    firstName: { type: String, default: '' },
+    lastName: { type: String, default: '' },
+    dob: { type: String, default: '' },
+    email: { type: String, default: '' },
+  },
   matchBreakdown: {
     creditScore: {
-      passed: { type: Boolean, default: false },
-      detail: { type: String, default: '' },
-    },
-    income: {
       passed: { type: Boolean, default: false },
       detail: { type: String, default: '' },
     },
@@ -42,6 +45,14 @@ const applicationSchema = new mongoose.Schema({
       detail: { type: String, default: '' },
     },
     bankruptcy: {
+      passed: { type: Boolean, default: false },
+      detail: { type: String, default: '' },
+    },
+    criminal: {
+      passed: { type: Boolean, default: false },
+      detail: { type: String, default: '' },
+    },
+    fraud: {
       passed: { type: Boolean, default: false },
       detail: { type: String, default: '' },
     },
