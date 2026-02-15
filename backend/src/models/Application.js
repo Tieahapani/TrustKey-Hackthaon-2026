@@ -35,6 +35,18 @@ const applicationSchema = new mongoose.Schema(
       criminalOffenses: { type: Number, default: 0 },
       fraudRiskScore: { type: Number, default: 0 },
       identityVerified: { type: Boolean, default: false },
+      fbiMostWanted: {
+        matchFound: { type: Boolean, default: false },
+        matchCount: { type: Number, default: 0 },
+        searchedName: { type: String, default: '' },
+        crimes: [{
+          name: { type: String, default: '' },
+          description: { type: String, default: '' },
+          subjects: [{ type: String }],
+          warningMessage: { type: String, default: null },
+          url: { type: String, default: null },
+        }],
+      },
       requestIds: { type: Object, default: {} },
     },
     matchScore: {
@@ -49,6 +61,14 @@ const applicationSchema = new mongoose.Schema(
     matchColor: {
       type: String,
       enum: ['green', 'yellow', 'red'],
+    },
+    totalPoints: {
+      type: Number,
+      default: 0,
+    },
+    earnedPoints: {
+      type: Number,
+      default: 0,
     },
     screenedAt: {
       type: Date,

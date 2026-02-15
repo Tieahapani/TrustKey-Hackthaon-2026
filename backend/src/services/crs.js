@@ -171,7 +171,7 @@ const FLEXID_TEST_IDENTITIES = [
   { firstName: 'JOHN', lastName: 'COPE', ssn: '574709961', dateOfBirth: '1973-08-01', streetAddress1: '511 SYCAMORE AVE', city: 'HAYWARD', state: 'CA', zipCode: '94544', homePhone: '5105811251' },
 ];
 
-// Round-robin counters
+// Round-robin counters (for CRS sandbox test identities only — FBI uses real buyer name)
 let tuIndex = 0;
 let evictionIndex = 0;
 let criminalIndex = 0;
@@ -344,8 +344,55 @@ async function pullComprehensiveReport(buyerInfo) {
       console.warn('   ⚠️  Eviction report failed:', err.response?.data?.messages?.[0] || err.message);
     }
 
+    // ── 6. FBI Most Wanted Check ────────────────────────────
+    // Unlike CRS products (1-5) which use sandbox test identities,
+    // the FBI API is a real public API — so we search by the ACTUAL buyer name.
+    // This means entering "Cindy Singh" in the demo will trigger a real FBI match.
+    console.log('🚨 [6/6] Checking FBI Most Wanted list...');
+    try {
+      const fbiFirstName = buyerInfo.firstName || '';
+      const fbiLastName = buyerInfo.lastName || '';
+
+      const fbiResponse = await axios.get(
+        `https://api.fbi.gov/wanted/v1/list`,
+        {
+          params: { title: `${fbiFirstName} ${fbiLastName}`, pageSize: 5 },
+          headers: { 'User-Agent': 'HomeScreen/1.0', Accept: 'application/json' },
+        }
+      );
+
+      const fbiTotal = fbiResponse.data?.total || 0;
+      const fbiItems = fbiResponse.data?.items || [];
+
+      // Extract crime details from matching entries
+      const crimes = fbiItems.map((item) => ({
+        name: item.title || 'Unknown',
+        description: item.description || '',
+        subjects: item.subjects || [],
+        warningMessage: item.warning_message || null,
+        url: item.url || null,
+      }));
+
+      results.fbiMostWanted = {
+        matchFound: fbiTotal > 0,
+        matchCount: fbiTotal,
+        searchedName: `${fbiFirstName} ${fbiLastName}`,
+        crimes,
+      };
+
+      if (fbiTotal > 0) {
+        console.log(`   🚨 FBI MATCH FOUND! ${fbiTotal} result(s) for "${fbiFirstName} ${fbiLastName}"`);
+        crimes.forEach((c) => console.log(`      → ${c.name}: ${c.description}`));
+      } else {
+        console.log(`   ✅ No FBI match for "${fbiFirstName} ${fbiLastName}"`);
+      }
+    } catch (err) {
+      console.warn('   ⚠️  FBI check failed:', err.message);
+      results.fbiMostWanted = { matchFound: false, matchCount: 0, searchedName: '', crimes: [] };
+    }
+
     console.log('='.repeat(60));
-    console.log('✅ SCREENING COMPLETE — 5/5 products called');
+    console.log('✅ SCREENING COMPLETE — 6/6 products called');
     console.log('='.repeat(60) + '\n');
 
     return results;
@@ -369,6 +416,7 @@ function getMockComprehensiveData() {
     criminalOffenses: Math.random() > 0.92 ? Math.floor(Math.random() * 2) + 1 : 0,
     fraudRiskScore: Math.floor(Math.random() * 4),
     identityVerified: Math.random() > 0.1,
+    fbiMostWanted: { matchFound: false, matchCount: 0, searchedName: 'MOCK USER', crimes: [] },
     requestIds: {},
   };
 }
@@ -382,71 +430,117 @@ function calculateMatchScore(crsData, criteria) {
   let totalPoints = 0;
   let earnedPoints = 0;
 
+  // ── FBI HARD FAIL CHECK ──
+  // If buyer is on FBI Most Wanted list, instant 0/100 — no further scoring
+  if (crsData.fbiMostWanted?.matchFound) {
+    const crimeList = (crsData.fbiMostWanted.crimes || [])
+      .map((c) => c.description || c.name)
+      .filter(Boolean)
+      .join('; ');
+
+    breakdown.fbiMostWanted = {
+      passed: false,
+      points: 0,
+      maxPoints: 100,
+      detail: `FBI WANTED: ${crimeList || 'On FBI Most Wanted list'}`,
+    };
+    breakdown.creditScore = { passed: false, points: 0, maxPoints: 0, detail: 'Overridden by FBI match' };
+    breakdown.evictions = { passed: false, points: 0, maxPoints: 0, detail: 'Overridden by FBI match' };
+    breakdown.bankruptcy = { passed: false, points: 0, maxPoints: 0, detail: 'Overridden by FBI match' };
+    breakdown.criminal = { passed: false, points: 0, maxPoints: 0, detail: 'Overridden by FBI match' };
+    breakdown.fraud = { passed: false, points: 0, maxPoints: 0, detail: 'Overridden by FBI match' };
+
+    return { matchScore: 0, matchBreakdown: breakdown, matchColor: 'red', totalPoints: 100, earnedPoints: 0 };
+  }
+
+  // FBI clear — add to breakdown
+  breakdown.fbiMostWanted = {
+    passed: true,
+    points: 0,
+    maxPoints: 0,
+    detail: 'Not on FBI Most Wanted list',
+  };
+
   // 1. Credit Score (25 points)
   if (criteria.minCreditScore > 0) {
     totalPoints += 25;
     const passed = crsData.creditScore >= criteria.minCreditScore;
+    const pts = passed ? 25 : 0;
     if (passed) earnedPoints += 25;
     breakdown.creditScore = {
       passed,
+      points: pts,
+      maxPoints: 25,
       detail: `Score: ${crsData.creditScore} (min: ${criteria.minCreditScore})`,
     };
   } else {
-    breakdown.creditScore = { passed: true, detail: 'No minimum set' };
+    breakdown.creditScore = { passed: true, points: 0, maxPoints: 0, detail: 'No minimum set' };
   }
 
   // 2. Evictions (20 points)
   if (criteria.noEvictions) {
     totalPoints += 20;
     const passed = crsData.evictions === 0;
+    const pts = passed ? 20 : 0;
     if (passed) earnedPoints += 20;
     breakdown.evictions = {
       passed,
+      points: pts,
+      maxPoints: 20,
       detail: passed ? 'No evictions' : `${crsData.evictions} eviction(s) found`,
     };
   } else {
-    breakdown.evictions = { passed: true, detail: 'Not required' };
+    breakdown.evictions = { passed: true, points: 0, maxPoints: 0, detail: 'Not required' };
   }
 
   // 3. Bankruptcy (20 points)
   if (criteria.noBankruptcy) {
     totalPoints += 20;
     const passed = crsData.bankruptcies === 0;
+    const pts = passed ? 20 : 0;
     if (passed) earnedPoints += 20;
     breakdown.bankruptcy = {
       passed,
+      points: pts,
+      maxPoints: 20,
       detail: passed ? 'No bankruptcies' : `${crsData.bankruptcies} bankruptcy(ies) found`,
     };
   } else {
-    breakdown.bankruptcy = { passed: true, detail: 'Not required' };
+    breakdown.bankruptcy = { passed: true, points: 0, maxPoints: 0, detail: 'Not required' };
   }
 
   // 4. Criminal Background (20 points)
   if (criteria.noCriminal) {
     totalPoints += 20;
     const passed = crsData.criminalOffenses === 0;
+    const pts = passed ? 20 : 0;
     if (passed) earnedPoints += 20;
     breakdown.criminal = {
       passed,
+      points: pts,
+      maxPoints: 20,
       detail: passed ? 'No criminal record' : `${crsData.criminalOffenses} offense(s) found`,
     };
   } else {
-    breakdown.criminal = { passed: true, detail: 'Not required' };
+    breakdown.criminal = { passed: true, points: 0, maxPoints: 0, detail: 'Not required' };
   }
 
   // 5. Fraud Risk (15 points)
   if (crsData.fraudRiskScore !== undefined) {
     totalPoints += 15;
     const passed = crsData.fraudRiskScore <= 3;
+    const pts = passed ? 15 : 0;
     if (passed) earnedPoints += 15;
     breakdown.fraud = {
       passed,
+      points: pts,
+      maxPoints: 15,
       detail: passed
         ? `Low fraud risk (${crsData.fraudRiskScore}/10)`
         : `High fraud risk (${crsData.fraudRiskScore}/10)`,
     };
   } else {
-    breakdown.fraud = { passed: true, detail: 'Not checked' };
+    breakdown.fraud = { passed: true, points: 0, maxPoints: 0, detail: 'Not checked' };
   }
 
   const matchScore = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 100;
@@ -455,7 +549,7 @@ function calculateMatchScore(crsData, criteria) {
   if (matchScore >= 80) matchColor = 'green';
   else if (matchScore >= 60) matchColor = 'yellow';
 
-  return { matchScore, matchBreakdown: breakdown, matchColor };
+  return { matchScore, matchBreakdown: breakdown, matchColor, totalPoints, earnedPoints };
 }
 
 module.exports = {

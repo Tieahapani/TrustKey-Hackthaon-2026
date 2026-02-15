@@ -35,8 +35,20 @@ router.post('/', verifyToken, async (req, res) => {
       return res.status(409).json({ error: 'You have already applied to this listing' });
     }
 
-    // Run comprehensive screening (uses sandbox test identities)
-    const crsData = await pullComprehensiveReport(buyerInfo);
+    // Check if this buyer already has CRS data from a previous application
+    // Same buyer = same background, so reuse CRS results instead of calling API again
+    let crsData;
+    const previousApp = await Application.findOne({ buyerId: user._id, crsData: { $exists: true } })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (previousApp && previousApp.crsData && previousApp.crsData.creditScore) {
+      console.log('♻️  Reusing CRS data from previous application for buyer:', user._id);
+      crsData = previousApp.crsData;
+    } else {
+      console.log('🔍 First application — running CRS screening for buyer:', user._id);
+      crsData = await pullComprehensiveReport(buyerInfo);
+    }
 
     // Build criteria object for matcher
     const criteria = {
@@ -47,7 +59,7 @@ router.post('/', verifyToken, async (req, res) => {
     };
 
     // Calculate match score
-    const { matchScore, matchBreakdown, matchColor } = calculateMatchScore(crsData, criteria);
+    const { matchScore, matchBreakdown, matchColor, totalPoints, earnedPoints } = calculateMatchScore(crsData, criteria);
 
     const application = await Application.create({
       listingId,
@@ -63,6 +75,8 @@ router.post('/', verifyToken, async (req, res) => {
       matchScore,
       matchBreakdown,
       matchColor,
+      totalPoints,
+      earnedPoints,
       consentGiven: true,
       screenedAt: new Date(),
     });
