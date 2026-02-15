@@ -53,26 +53,14 @@ app.use('/api/users', usersRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  let b64Debug = null;
-  const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
-  if (b64) {
-    try {
-      const decoded = Buffer.from(b64, 'base64').toString('utf8');
-      const parsed = JSON.parse(decoded);
-      b64Debug = { ok: true, project_id: parsed.project_id };
-    } catch (e) {
-      b64Debug = { ok: false, error: e.message, first50: Buffer.from(b64, 'base64').toString('utf8').substring(0, 50) };
-    }
-  }
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     env: {
       hasMongoUri: !!process.env.MONGODB_URI,
-      hasFirebaseB64: !!b64,
+      hasFirebaseIndividual: !!(process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY),
       hasFirebaseJson: !!process.env.FIREBASE_SERVICE_ACCOUNT,
-      firebaseB64Length: (b64 || '').length,
-      b64Debug,
+      firebaseProjectId: process.env.FIREBASE_PROJECT_ID || null,
     },
   });
 });
