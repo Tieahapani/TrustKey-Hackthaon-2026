@@ -35,9 +35,9 @@ export default function CreateListing() {
 
   // Screening criteria
   const [minCreditScore, setMinCreditScore] = useState('680');
-  const [minIncomeMultiplier, setMinIncomeMultiplier] = useState('3');
   const [noEvictions, setNoEvictions] = useState(true);
   const [noBankruptcy, setNoBankruptcy] = useState(true);
+  const [noCriminal, setNoCriminal] = useState(true);
 
   if (!profile || profile.role !== 'seller') {
     return (
@@ -110,9 +110,9 @@ export default function CreateListing() {
         photos,
         screeningCriteria: {
           minCreditScore: Number(minCreditScore) || 0,
-          minIncomeMultiplier: Number(minIncomeMultiplier) || 0,
           noEvictions,
           noBankruptcy,
+          noCriminal,
         },
       };
 
@@ -350,28 +350,15 @@ export default function CreateListing() {
           <p className="text-sm text-muted-foreground">
             Set your requirements for applicant screening. Buyers will be scored against these criteria.
           </p>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Min Credit Score</label>
-              <input
-                type="number"
-                value={minCreditScore}
-                onChange={(e) => setMinCreditScore(e.target.value)}
-                placeholder="680"
-                className="w-full px-3 py-2 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Income Multiplier (x rent)</label>
-              <input
-                type="number"
-                value={minIncomeMultiplier}
-                onChange={(e) => setMinIncomeMultiplier(e.target.value)}
-                step="0.5"
-                placeholder="3"
-                className="w-full px-3 py-2 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Min Credit Score</label>
+            <input
+              type="number"
+              value={minCreditScore}
+              onChange={(e) => setMinCreditScore(e.target.value)}
+              placeholder="680"
+              className="w-full px-3 py-2 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+            />
           </div>
           <div className="flex gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -391,6 +378,15 @@ export default function CreateListing() {
                 className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
               />
               <span className="text-sm">No bankruptcy</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={noCriminal}
+                onChange={(e) => setNoCriminal(e.target.checked)}
+                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <span className="text-sm">No criminal record</span>
             </label>
           </div>
         </section>

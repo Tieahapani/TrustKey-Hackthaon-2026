@@ -12,10 +12,11 @@ const applicationSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
-    monthlyIncome: {
-      type: Number,
-      required: true,
-      min: 0,
+    buyerInfo: {
+      firstName: { type: String, default: '' },
+      lastName: { type: String, default: '' },
+      dob: { type: String, default: '' },
+      email: { type: String, default: '' },
     },
     status: {
       type: String,
@@ -48,16 +49,6 @@ const applicationSchema = new mongoose.Schema(
     matchColor: {
       type: String,
       enum: ['green', 'yellow', 'red'],
-    },
-    mortgageEstimate: {
-      homePrice: Number,
-      downPayment: Number,
-      loanAmount: Number,
-      interestRate: Number,
-      loanTermYears: Number,
-      monthlyPayment: Number,
-      totalPaid: Number,
-      totalInterest: Number,
     },
     screenedAt: {
       type: Date,

@@ -105,125 +105,77 @@ function countOccurrences(obj, ...keys) {
 }
 
 // ============================================
-// MORTGAGE CALCULATOR (for home sales)
+// TEST IDENTITIES (from CRS MCP Sandbox)
+// Round-robin arrays for varied test results
 // ============================================
 
-/**
- * Estimate monthly mortgage payment for home sales
- * @param {number} homePrice - Total home price
- * @param {number} downPaymentPercent - Down payment as percentage (default 20%)
- * @param {number} interestRate - Annual interest rate as percentage (default 7%)
- * @param {number} loanTermYears - Loan term in years (default 30)
- * @returns {object} Mortgage breakdown with monthly payment
- */
-function estimateMortgage(
-  homePrice,
-  downPaymentPercent = 20,
-  interestRate = 7,
-  loanTermYears = 30
-) {
-  const downPayment = homePrice * (downPaymentPercent / 100);
-  const loanAmount = homePrice - downPayment;
-  const monthlyRate = interestRate / 100 / 12;
-  const numberOfPayments = loanTermYears * 12;
-
-  // Monthly payment formula: M = P * [r(1+r)^n] / [(1+r)^n - 1]
-  const monthlyPayment =
-    (loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments))) /
-    (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
-
-  return {
-    homePrice,
-    downPayment: Math.round(downPayment),
-    loanAmount: Math.round(loanAmount),
-    interestRate,
-    loanTermYears,
-    monthlyPayment: Math.round(monthlyPayment),
-    totalPaid: Math.round(monthlyPayment * numberOfPayments),
-    totalInterest: Math.round(monthlyPayment * numberOfPayments - loanAmount),
-  };
-}
-
-// ============================================
-// TEST IDENTITIES (from Postman Sandbox)
-// ============================================
-
-const TU_TEST_IDENTITY = {
-  firstName: 'BARBARA',
-  middleName: 'M',
-  lastName: 'DOTY',
-  suffix: '',
-  birthDate: '1966-01-04',
-  ssn: '000000000',
-  addresses: [
-    {
-      borrowerResidencyType: 'Current',
-      addressLine1: '1100 LYNHURST LN',
-      addressLine2: '',
-      city: 'DENTON',
-      state: 'TX',
-      postalCode: '762058006',
-    },
-  ],
-};
-
-const EVICTION_TEST_IDENTITY = {
-  reference: 'homescreen-ref',
-  subjectInfo: {
-    last: 'Chuang',
-    first: 'Harold',
-    middle: '',
-    dob: '01-01-1982',
-    ssn: '666-44-3321',
-    houseNumber: '1803',
-    streetName: 'Norma',
-    city: 'Cottonwood',
-    state: 'CA',
-    zip: '91502',
+const TU_TEST_IDENTITIES = [
+  {
+    firstName: 'DIANE', middleName: '', lastName: 'BARABAS', suffix: '', ssn: '666283370', birthDate: '',
+    addresses: [{ borrowerResidencyType: 'Current', addressLine1: '19955 N MADERA AVE', addressLine2: ' ', city: 'KERMAN', state: 'CA', postalCode: '93630' }],
   },
-};
-
-const CRIMINAL_TEST_IDENTITY = {
-  reference: 'homescreen-criminal-ref',
-  subjectInfo: {
-    last: 'Consumer',
-    first: 'Jonathan',
-    middle: '',
-    dob: '01-01-1982',
-    ssn: '666-44-3321',
-    houseNumber: '1803',
-    streetName: 'Norma',
-    city: 'Cottonwood',
-    state: 'CA',
-    zip: '91502',
+  {
+    firstName: 'NATALIE', middleName: 'A', lastName: 'BLACK', suffix: '', ssn: '666207378', birthDate: '',
+    addresses: [{ borrowerResidencyType: 'Current', addressLine1: '46 E 41ST ST', addressLine2: '# 2', city: 'COVINGTON', state: 'KY', postalCode: '410151711' }],
   },
-};
+  {
+    firstName: 'BROSE', middleName: '', lastName: 'BAMBIKO', suffix: '', ssn: '666328649', birthDate: '',
+    addresses: [{ borrowerResidencyType: 'Current', addressLine1: '4711 247TH STREET CT E', addressLine2: ' ', city: 'GRAHAM', state: 'WA', postalCode: '983388337' }],
+  },
+  {
+    firstName: 'EILEEN', middleName: 'M', lastName: 'BRADY', suffix: '', ssn: '666883007', birthDate: '1972-11-22',
+    addresses: [{ borrowerResidencyType: 'Current', addressLine1: '31 LONDON CT', addressLine2: ' ', city: 'PLEASANTVILLE', state: 'NJ', postalCode: '082344434' }],
+  },
+  {
+    firstName: 'EUGENE', middleName: 'F', lastName: 'BEAUPRE', suffix: '', ssn: '666582109', birthDate: '1955-06-23',
+    addresses: [{ borrowerResidencyType: 'Current', addressLine1: '5151 N CEDAR AVE', addressLine2: 'APT 102', city: 'FRESNO', state: 'CA', postalCode: '937107453' }],
+  },
+];
+
+const EVICTION_TEST_IDENTITIES = [
+  { reference: 'myRef123', subjectInfo: { first: 'Kris', middle: 'X', last: 'Consumer', houseNumber: '272', streetName: 'LANDINGS', city: 'MERRITT ISLAND', state: 'FL', zip: '32952', dob: '01-02-1982', ssn: '666-44-3322' } },
+  { reference: 'myRef123', subjectInfo: { first: 'Indiana', middle: 'X', last: 'Consumer', houseNumber: '272', streetName: 'LANDINGS', city: 'MERRITT ISLAND', state: 'FL', zip: '32952', dob: '01-03-1982', ssn: '666-44-3323' } },
+  { reference: 'myRef123', subjectInfo: { first: 'Harold', middle: 'X', last: 'Chuang', houseNumber: '272', streetName: 'LANDINGS', city: 'MERRITT ISLAND', state: 'FL', zip: '32952', dob: '01-11-1982', ssn: '666-44-3331' } },
+  { reference: 'myRef123', subjectInfo: { first: 'William', middle: 'X', last: 'Bornstein', houseNumber: '272', streetName: 'LANDINGS', city: 'MERRITT ISLAND', state: 'FL', zip: '32952', dob: '01-14-1982', ssn: '666-44-3334' } },
+  { reference: 'myRef123', subjectInfo: { first: 'Jennifer', middle: 'X', last: 'Ray', houseNumber: '275', streetName: 'LANDINGS', city: 'MERRITT ISLAND', state: 'FL', zip: '32955', dob: '09-03-1972', ssn: '123-45-6789' } },
+];
+
+const CRIMINAL_TEST_IDENTITIES = [
+  { reference: 'myRef123', subjectInfo: { first: 'Jennifer', middle: 'X', last: 'Ray', houseNumber: '275', streetName: 'LANDINGS', city: 'MERRITT ISLAND', state: 'FL', zip: '32955', dob: '09-03-1972', ssn: '123-45-6789' } },
+  { reference: 'myRef123', subjectInfo: { first: 'William', middle: 'X', last: 'Bornstein', houseNumber: '278', streetName: 'LANDINGS', city: 'MERRITT ISLAND', state: 'FL', zip: '32958', dob: '06-20-1990', ssn: '123-45-6789' } },
+  { reference: 'myRef123', subjectInfo: { first: 'Ruth', middle: 'X', last: 'Brandis', houseNumber: '277', streetName: 'LANDINGS', city: 'MERRITT ISLAND', state: 'FL', zip: '32957', dob: '04-01-1985', ssn: '123-45-6789' } },
+  { reference: 'myRef123', subjectInfo: { first: 'Harold', middle: 'X', last: 'Chuang', houseNumber: '272', streetName: 'LANDINGS', city: 'MERRITT ISLAND', state: 'FL', zip: '32952', dob: '02-28-1965', ssn: '123-45-6789' } },
+  { reference: 'myRef123', subjectInfo: { first: 'Erron', middle: 'X', last: 'Consumer', houseNumber: '279', streetName: 'LANDINGS', city: 'MERRITT ISLAND', state: 'FL', zip: '32959', dob: '01-01-1980', ssn: '123-45-6789' } },
+];
 
 const FRAUD_TEST_IDENTITY = {
+  email: 'test@example.com',
   firstName: 'John',
   lastName: 'Doe',
-  phoneNumber: '1234929999',
-  email: 'example@atdata.com',
-  ipAddress: '47.25.65.96',
+  phoneNumber: '5551234567',
+  ipAddress: '1.2.3.4',
+  userAgent: 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0',
   address: {
-    addressLine1: '15900  SPACE CN',
-    city: 'HOUSTON',
-    state: 'TX',
-    postalCode: '77062',
+    addressLine1: '123 Main Street',
+    city: 'Anytown',
+    state: 'CA',
+    postalCode: '90210',
   },
 };
 
-const FLEXID_TEST_IDENTITY = {
-  firstName: 'NATALIE',
-  lastName: 'KORZEC',
-  ssn: '7537',
-  dateOfBirth: '1940-12-23',
-  streetAddress: '801 E OGDEN 1011',
-  city: 'VAUGHN',
-  state: 'WA',
-  zipCode: '98394',
-  homePhone: '5031234567',
-};
+const FLEXID_TEST_IDENTITIES = [
+  { firstName: 'MIRANDA', lastName: 'JJUNIPER', ssn: '540325127', dateOfBirth: '1955-11-13', streetAddress1: '1678 NE 41ST', city: 'ATLANTA', state: 'GA', zipCode: '30302', homePhone: '4786251234' },
+  { firstName: 'PEGGY', lastName: 'GRAVES', dateOfBirth: '1958-09-09', streetAddress1: '248 HOOD RD', city: 'CHESNEE', state: 'SC', zipCode: '29323', homePhone: '8644613780' },
+  { firstName: 'CRYSTAL', lastName: 'GOODLEY', dateOfBirth: '1949-03-23', streetAddress1: '338 POND RD #716', city: 'WANCHESE', state: 'NC', zipCode: '27981', homePhone: '2524735295' },
+  { firstName: 'HASAN', lastName: 'GIDI', dateOfBirth: '1963-10-02', streetAddress1: '4357A MARTINS CREEK BELVIDER', city: 'BANGOR', state: 'PA', zipCode: '18013', homePhone: '6105880643' },
+  { firstName: 'JOHN', lastName: 'COPE', ssn: '574709961', dateOfBirth: '1973-08-01', streetAddress1: '511 SYCAMORE AVE', city: 'HAYWARD', state: 'CA', zipCode: '94544', homePhone: '5105811251' },
+];
+
+// Round-robin counters
+let tuIndex = 0;
+let evictionIndex = 0;
+let criminalIndex = 0;
+let flexIdIndex = 0;
 
 // ============================================
 // COMPREHENSIVE SCREENING (All 5 Products)
@@ -277,21 +229,8 @@ async function pullComprehensiveReport(buyerInfo) {
     // ── 1. Fraud Finder ──────────────────────────────────
     console.log('🔍 [1/5] Running Fraud Finder...');
     try {
-      const fraudPayload = buyerInfo?.email
-        ? {
-            firstName: buyerInfo.firstName || 'John',
-            lastName: buyerInfo.lastName || 'Doe',
-            phoneNumber: buyerInfo.phone || '1234929999',
-            email: buyerInfo.email || 'example@atdata.com',
-            ipAddress: buyerInfo.ipAddress || '47.25.65.96',
-            address: {
-              addressLine1: buyerInfo.addressLine1 || '15900  SPACE CN',
-              city: buyerInfo.city || 'HOUSTON',
-              state: buyerInfo.state || 'TX',
-              postalCode: buyerInfo.zip || '77062',
-            },
-          }
-        : FRAUD_TEST_IDENTITY;
+      // Always use sandbox test identity — real buyer info is stored in DB, not sent to CRS
+      const fraudPayload = FRAUD_TEST_IDENTITY;
 
       const fraudResponse = await axios.post(
         `${baseUrl}/fraud-finder/fraud-finder`,
@@ -313,19 +252,8 @@ async function pullComprehensiveReport(buyerInfo) {
     // ── 2. FlexID (Identity Verification) ────────────────
     console.log('🆔 [2/5] Running FlexID Identity Verification...');
     try {
-      const flexPayload = buyerInfo?.ssn
-        ? {
-            firstName: buyerInfo.firstName || 'NATALIE',
-            lastName: buyerInfo.lastName || 'KORZEC',
-            ssn: buyerInfo.ssn || '7537',
-            dateOfBirth: buyerInfo.dob || '1940-12-23',
-            streetAddress: buyerInfo.addressLine1 || '801 E OGDEN 1011',
-            city: buyerInfo.city || 'VAUGHN',
-            state: buyerInfo.state || 'WA',
-            zipCode: buyerInfo.zip || '98394',
-            homePhone: buyerInfo.phone || '5031234567',
-          }
-        : FLEXID_TEST_IDENTITY;
+      const flexPayload = FLEXID_TEST_IDENTITIES[flexIdIndex % FLEXID_TEST_IDENTITIES.length];
+      flexIdIndex++;
 
       const flexResponse = await axios.post(
         `${baseUrl}/flex-id/flex-id`,
@@ -346,9 +274,11 @@ async function pullComprehensiveReport(buyerInfo) {
     // ── 3. Credit Report (TransUnion) ────────────────────
     console.log('📊 [3/5] Fetching TransUnion credit report...');
     try {
+      const tuPayload = TU_TEST_IDENTITIES[tuIndex % TU_TEST_IDENTITIES.length];
+      tuIndex++;
       const tuResponse = await axios.post(
         `${baseUrl}/transunion/credit-report/standard/tu-prequal-vantage4`,
-        TU_TEST_IDENTITY,
+        tuPayload,
         { headers }
       );
 
@@ -356,9 +286,9 @@ async function pullComprehensiveReport(buyerInfo) {
       if (tuRequestId) results.requestIds.credit = tuRequestId;
 
       results.creditScore =
-        findValueByKey(tuResponse.data, 'vantageScore', 'creditScore', 'score') || 680;
+        findValueByKey(tuResponse.data, 'scoreValue', 'vantageScore', 'creditScore', 'score') || 680;
       results.bankruptcies =
-        countOccurrences(tuResponse.data, 'bankruptcy', 'bankruptcies') || 0;
+        parseInt(findValueByKey(tuResponse.data, 'bankruptciesCount', 'bankruptcies') || 0, 10);
 
       console.log(`   ✅ Credit Score: ${results.creditScore}`);
       console.log(`   ℹ️  Note: TransUnion does not provide income data`);
@@ -369,9 +299,11 @@ async function pullComprehensiveReport(buyerInfo) {
     // ── 4. Criminal Background Check ─────────────────────
     console.log('🚔 [4/5] Fetching criminal background...');
     try {
+      const crimPayload = CRIMINAL_TEST_IDENTITIES[criminalIndex % CRIMINAL_TEST_IDENTITIES.length];
+      criminalIndex++;
       const criminalResponse = await axios.post(
         `${baseUrl}/criminal/new-request`,
-        CRIMINAL_TEST_IDENTITY,
+        crimPayload,
         { headers }
       );
 
@@ -391,9 +323,11 @@ async function pullComprehensiveReport(buyerInfo) {
     // ── 5. Eviction History ──────────────────────────────
     console.log('🏠 [5/5] Fetching eviction history...');
     try {
+      const evicPayload = EVICTION_TEST_IDENTITIES[evictionIndex % EVICTION_TEST_IDENTITIES.length];
+      evictionIndex++;
       const evictionResponse = await axios.post(
         `${baseUrl}/eviction/new-request`,
-        EVICTION_TEST_IDENTITY,
+        evicPayload,
         { headers }
       );
 
@@ -440,31 +374,19 @@ function getMockComprehensiveData() {
 }
 
 /**
- * Calculate match score with all criteria (supports both rental and sale)
- * @param {object} crsData - CRS screening results
- * @param {object} criteria - Seller's screening criteria
- * @param {number} buyerMonthlyIncome - Self-reported monthly income from buyer
- * @param {number} listingPrice - Monthly rent (for rentals) or home price (for sales)
- * @param {string} listingType - 'rent' or 'sale'
+ * Calculate match score based on CRS screening data vs seller criteria.
+ * Weights: credit=25, evictions=20, bankruptcy=20, criminal=20, fraud=15 = 100
  */
-function calculateMatchScore(crsData, criteria, buyerMonthlyIncome, listingPrice, listingType) {
+function calculateMatchScore(crsData, criteria) {
   const breakdown = {};
   let totalPoints = 0;
   let earnedPoints = 0;
-  let mortgageEstimate = null;
 
   // 1. Credit Score (25 points)
   if (criteria.minCreditScore > 0) {
     totalPoints += 25;
     const passed = crsData.creditScore >= criteria.minCreditScore;
-    if (passed) {
-      earnedPoints += 25;
-    } else {
-      const diff = criteria.minCreditScore - crsData.creditScore;
-      if (diff <= 50) {
-        earnedPoints += Math.round(25 * (1 - diff / 50));
-      }
-    }
+    if (passed) earnedPoints += 25;
     breakdown.creditScore = {
       passed,
       detail: `Score: ${crsData.creditScore} (min: ${criteria.minCreditScore})`,
@@ -473,51 +395,7 @@ function calculateMatchScore(crsData, criteria, buyerMonthlyIncome, listingPrice
     breakdown.creditScore = { passed: true, detail: 'No minimum set' };
   }
 
-  // 2. Income (25 points) - Different logic for rent vs sale
-  if (criteria.minIncomeMultiplier > 0 && buyerMonthlyIncome > 0) {
-    totalPoints += 25;
-    let passed = false;
-    let ratio = 0;
-    let detailText = '';
-
-    if (listingType === 'rent') {
-      // RENTAL: Compare monthly income vs monthly rent
-      ratio = buyerMonthlyIncome / listingPrice;
-      passed = ratio >= criteria.minIncomeMultiplier;
-      detailText = `Monthly income: $${buyerMonthlyIncome.toLocaleString()}, ${ratio.toFixed(1)}x rent (min: ${criteria.minIncomeMultiplier}x)`;
-    } else {
-      // SALE: Calculate mortgage, then compare income vs mortgage payment
-      mortgageEstimate = estimateMortgage(listingPrice);
-      ratio = buyerMonthlyIncome / mortgageEstimate.monthlyPayment;
-      passed = ratio >= criteria.minIncomeMultiplier;
-      detailText = `Monthly income: $${buyerMonthlyIncome.toLocaleString()}, ${ratio.toFixed(1)}x mortgage payment of $${mortgageEstimate.monthlyPayment.toLocaleString()} (min: ${criteria.minIncomeMultiplier}x)`;
-    }
-
-    if (passed) {
-      earnedPoints += 25;
-    } else if (ratio >= criteria.minIncomeMultiplier * 0.75) {
-      earnedPoints += 15; // Partial credit if within 75% of requirement
-    }
-
-    breakdown.income = { passed, detail: detailText };
-  } else {
-    breakdown.income = { passed: true, detail: 'No minimum set' };
-  }
-
-  // 3. Criminal Background (15 points)
-  if (criteria.noCriminal) {
-    totalPoints += 15;
-    const passed = crsData.criminalOffenses === 0;
-    if (passed) earnedPoints += 15;
-    breakdown.criminal = {
-      passed,
-      detail: passed ? 'No criminal record' : `${crsData.criminalOffenses} offense(s) found`,
-    };
-  } else {
-    breakdown.criminal = { passed: true, detail: 'Not required' };
-  }
-
-  // 4. Evictions (20 points)
+  // 2. Evictions (20 points)
   if (criteria.noEvictions) {
     totalPoints += 20;
     const passed = crsData.evictions === 0;
@@ -530,11 +408,11 @@ function calculateMatchScore(crsData, criteria, buyerMonthlyIncome, listingPrice
     breakdown.evictions = { passed: true, detail: 'Not required' };
   }
 
-  // 5. Bankruptcy (10 points)
+  // 3. Bankruptcy (20 points)
   if (criteria.noBankruptcy) {
-    totalPoints += 10;
+    totalPoints += 20;
     const passed = crsData.bankruptcies === 0;
-    if (passed) earnedPoints += 10;
+    if (passed) earnedPoints += 20;
     breakdown.bankruptcy = {
       passed,
       detail: passed ? 'No bankruptcies' : `${crsData.bankruptcies} bankruptcy(ies) found`,
@@ -543,11 +421,24 @@ function calculateMatchScore(crsData, criteria, buyerMonthlyIncome, listingPrice
     breakdown.bankruptcy = { passed: true, detail: 'Not required' };
   }
 
-  // 6. Fraud Risk (5 points)
+  // 4. Criminal Background (20 points)
+  if (criteria.noCriminal) {
+    totalPoints += 20;
+    const passed = crsData.criminalOffenses === 0;
+    if (passed) earnedPoints += 20;
+    breakdown.criminal = {
+      passed,
+      detail: passed ? 'No criminal record' : `${crsData.criminalOffenses} offense(s) found`,
+    };
+  } else {
+    breakdown.criminal = { passed: true, detail: 'Not required' };
+  }
+
+  // 5. Fraud Risk (15 points)
   if (crsData.fraudRiskScore !== undefined) {
-    totalPoints += 5;
+    totalPoints += 15;
     const passed = crsData.fraudRiskScore <= 3;
-    if (passed) earnedPoints += 5;
+    if (passed) earnedPoints += 15;
     breakdown.fraud = {
       passed,
       detail: passed
@@ -564,27 +455,10 @@ function calculateMatchScore(crsData, criteria, buyerMonthlyIncome, listingPrice
   if (matchScore >= 80) matchColor = 'green';
   else if (matchScore >= 60) matchColor = 'yellow';
 
-  const result = { matchScore, matchBreakdown: breakdown, matchColor };
-  
-  // Add mortgage estimate for sales listings
-  if (listingType === 'sale' && mortgageEstimate) {
-    result.mortgageEstimate = mortgageEstimate;
-  }
-
-  return result;
-}
-
-/**
- * Legacy function - calls new comprehensive screening
- * @deprecated Use pullComprehensiveReport instead
- */
-async function pullCreditReport(buyerInfo) {
-  return await pullComprehensiveReport(buyerInfo);
+  return { matchScore, matchBreakdown: breakdown, matchColor };
 }
 
 module.exports = {
-  pullCreditReport,
   pullComprehensiveReport,
   calculateMatchScore,
-  estimateMortgage,
 };

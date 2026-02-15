@@ -61,9 +61,9 @@ const listingSchema = new mongoose.Schema({
   },
   screeningCriteria: {
     minCreditScore: { type: Number, default: 0 },
-    minIncomeMultiplier: { type: Number, default: 0 },
     noEvictions: { type: Boolean, default: false },
     noBankruptcy: { type: Boolean, default: false },
+    noCriminal: { type: Boolean, default: false },
   },
   status: {
     type: String,
