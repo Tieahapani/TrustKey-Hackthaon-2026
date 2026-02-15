@@ -37,7 +37,7 @@ export default function About() {
           <Card className="border-border/60 card-shadow">
             <CardContent className="p-6">
               <p className="text-base leading-relaxed text-muted-foreground">
-                TrustKey for CRS is an AI-powered housing marketplace designed to
+                TrustKey is a housing marketplace designed to
                 revolutionize the rental and real estate experience. With instant
                 credit screening, smart property assistants, and a seamless search
                 experience, TrustKey connects buyers and sellers through a trusted,
