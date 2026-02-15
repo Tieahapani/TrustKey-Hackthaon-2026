@@ -518,7 +518,7 @@ export default function MyApplications() {
                                     Criminal
                                   </p>
                                   <p className="font-semibold text-foreground">
-                                    {app.crsData?.criminalRecords ?? "--"}
+                                    {app.crsData?.criminalOffenses ?? "--"}
                                   </p>
                                 </div>
                               </div>

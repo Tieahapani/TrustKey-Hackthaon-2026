@@ -32,6 +32,14 @@ import {
   XCircle,
   Loader2,
   AlertCircle,
+  ShieldCheck,
+  ShieldAlert,
+  CreditCard,
+  Home,
+  Scale,
+  Fingerprint,
+  AlertTriangle,
+  Clock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -536,10 +544,36 @@ export default function Dashboard() {
                               className="overflow-hidden"
                             >
                               <div className="border-t border-border px-4 pb-4 pt-3">
-                                <div className="flex flex-col sm:flex-row items-center gap-6">
-                                  {/* Animated Circular TrustKey Score Meter */}
-                                  <div className="flex flex-col items-center">
-                                    <div className="relative h-24 w-24">
+                                {/* ── FBI Alert Banner ── */}
+                                {app.crsData?.fbiMostWanted?.matchFound && (
+                                  <div className="mb-4 rounded-lg border border-screening-red/30 bg-screening-red/10 p-3">
+                                    <div className="flex items-center gap-2 text-screening-red font-semibold text-sm">
+                                      <ShieldAlert className="h-4 w-4" />
+                                      FBI Most Wanted Match
+                                    </div>
+                                    <p className="mt-1 text-xs text-screening-red/80">
+                                      {app.crsData.fbiMostWanted.matchCount} result(s) found for "{app.crsData.fbiMostWanted.searchedName}"
+                                    </p>
+                                    {app.crsData.fbiMostWanted.crimes?.slice(0, 2).map((crime, ci) => (
+                                      <div key={ci} className="mt-1.5 rounded bg-screening-red/5 px-2 py-1 text-xs text-foreground">
+                                        <span className="font-medium">{crime.name}</span>
+                                        {crime.description && (
+                                          <span className="text-muted-foreground"> — {crime.description}</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                    {(app.crsData.fbiMostWanted.crimes?.length ?? 0) > 2 && (
+                                      <p className="mt-1 text-[11px] text-muted-foreground">
+                                        +{app.crsData.fbiMostWanted.crimes.length - 2} more result(s)
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+
+                                <div className="flex flex-col lg:flex-row items-start gap-6">
+                                  {/* ── Animated Circular TrustKey Score Meter ── */}
+                                  <div className="flex flex-col items-center self-center lg:self-start">
+                                    <div className="relative h-28 w-28">
                                       <svg
                                         viewBox="0 0 100 100"
                                         className="h-full w-full -rotate-90"
@@ -574,7 +608,7 @@ export default function Dashboard() {
                                         />
                                       </svg>
                                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                        <span className="font-display text-lg font-bold text-foreground">
+                                        <span className="font-display text-2xl font-bold text-foreground">
                                           {app.matchScore}
                                         </span>
                                         <span className="text-[10px] text-muted-foreground">
@@ -585,46 +619,175 @@ export default function Dashboard() {
                                     <p className="mt-1 text-xs font-medium text-muted-foreground">
                                       TrustKey Score
                                     </p>
+                                    {app.screenedAt && (
+                                      <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground/60">
+                                        <Clock className="h-2.5 w-2.5" />
+                                        {new Date(app.screenedAt).toLocaleDateString()}
+                                      </p>
+                                    )}
                                   </div>
 
-                                  {/* CRS detail fields */}
-                                  <div className="grid grid-cols-3 gap-6 text-sm flex-1">
-                                    <div className="text-center sm:text-left">
-                                      <p className="text-xs text-muted-foreground">
-                                        Evictions
-                                      </p>
-                                      <p className="font-semibold text-foreground">
-                                        {app.crsData?.evictions ?? "—"}
-                                      </p>
+                                  {/* ── CRS Screening Data Grid ── */}
+                                  <div className="flex-1 w-full">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                      {/* Credit Score */}
+                                      <div className="rounded-lg border border-border bg-card p-3">
+                                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                                          <CreditCard className="h-3.5 w-3.5" />
+                                          <span className="text-[11px] font-medium">Credit Score</span>
+                                        </div>
+                                        <p className={`mt-1 text-lg font-bold ${
+                                          (app.crsData?.creditScore ?? 0) >= 700
+                                            ? "text-screening-green"
+                                            : (app.crsData?.creditScore ?? 0) >= 600
+                                              ? "text-screening-yellow"
+                                              : "text-screening-red"
+                                        }`}>
+                                          {app.crsData?.creditScore ?? "—"}
+                                        </p>
+                                      </div>
+
+                                      {/* Evictions */}
+                                      <div className="rounded-lg border border-border bg-card p-3">
+                                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                                          <Home className="h-3.5 w-3.5" />
+                                          <span className="text-[11px] font-medium">Evictions</span>
+                                        </div>
+                                        <p className={`mt-1 text-lg font-bold ${
+                                          (app.crsData?.evictions ?? 0) === 0
+                                            ? "text-screening-green"
+                                            : "text-screening-red"
+                                        }`}>
+                                          {app.crsData?.evictions ?? "—"}
+                                        </p>
+                                      </div>
+
+                                      {/* Bankruptcies */}
+                                      <div className="rounded-lg border border-border bg-card p-3">
+                                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                                          <Scale className="h-3.5 w-3.5" />
+                                          <span className="text-[11px] font-medium">Bankruptcies</span>
+                                        </div>
+                                        <p className={`mt-1 text-lg font-bold ${
+                                          (app.crsData?.bankruptcies ?? 0) === 0
+                                            ? "text-screening-green"
+                                            : "text-screening-red"
+                                        }`}>
+                                          {app.crsData?.bankruptcies ?? "—"}
+                                        </p>
+                                      </div>
+
+                                      {/* Criminal Offenses */}
+                                      <div className="rounded-lg border border-border bg-card p-3">
+                                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                                          <AlertTriangle className="h-3.5 w-3.5" />
+                                          <span className="text-[11px] font-medium">Criminal Offenses</span>
+                                        </div>
+                                        <p className={`mt-1 text-lg font-bold ${
+                                          (app.crsData?.criminalOffenses ?? 0) === 0
+                                            ? "text-screening-green"
+                                            : "text-screening-red"
+                                        }`}>
+                                          {app.crsData?.criminalOffenses ?? "—"}
+                                        </p>
+                                      </div>
+
+                                      {/* Fraud Risk */}
+                                      <div className="rounded-lg border border-border bg-card p-3">
+                                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                                          <ShieldAlert className="h-3.5 w-3.5" />
+                                          <span className="text-[11px] font-medium">Fraud Risk</span>
+                                        </div>
+                                        <p className={`mt-1 text-lg font-bold ${
+                                          (app.crsData?.fraudRiskScore ?? 0) <= 3
+                                            ? "text-screening-green"
+                                            : "text-screening-red"
+                                        }`}>
+                                          {app.crsData?.fraudRiskScore != null
+                                            ? `${app.crsData.fraudRiskScore}/10`
+                                            : "—"}
+                                        </p>
+                                      </div>
+
+                                      {/* Identity Verified */}
+                                      <div className="rounded-lg border border-border bg-card p-3">
+                                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                                          <Fingerprint className="h-3.5 w-3.5" />
+                                          <span className="text-[11px] font-medium">Identity</span>
+                                        </div>
+                                        <p className={`mt-1 text-lg font-bold ${
+                                          app.crsData?.identityVerified
+                                            ? "text-screening-green"
+                                            : "text-screening-yellow"
+                                        }`}>
+                                          {app.crsData?.identityVerified ? "Verified" : "Unverified"}
+                                        </p>
+                                      </div>
                                     </div>
-                                    <div className="text-center sm:text-left">
-                                      <p className="text-xs text-muted-foreground">
-                                        Bankruptcies
-                                      </p>
-                                      <p className="font-semibold text-foreground">
-                                        {app.crsData?.bankruptcies != null
-                                          ? app.crsData.bankruptcies > 0
-                                            ? "Yes"
-                                            : "No"
-                                          : "—"}
-                                      </p>
-                                    </div>
-                                    <div className="text-center sm:text-left">
-                                      <p className="text-xs text-muted-foreground">
-                                        Criminal Records
-                                      </p>
-                                      <p className="font-semibold text-foreground">
-                                        {app.crsData?.criminalRecords != null
-                                          ? app.crsData.criminalRecords > 0
-                                            ? `${app.crsData.criminalRecords}`
-                                            : "None"
-                                          : "—"}
-                                      </p>
-                                    </div>
+
+                                    {/* ── FBI Check Status ── */}
+                                    {app.crsData?.fbiMostWanted && !app.crsData.fbiMostWanted.matchFound && (
+                                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-screening-green/20 bg-screening-green/5 px-3 py-2">
+                                        <ShieldCheck className="h-4 w-4 text-screening-green" />
+                                        <span className="text-xs font-medium text-screening-green">
+                                          FBI Most Wanted — Clear
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* ── Match Breakdown ── */}
+                                    {app.matchBreakdown && Object.keys(app.matchBreakdown).length > 0 && (
+                                      <div className="mt-3">
+                                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                                          Screening Breakdown
+                                        </p>
+                                        <div className="space-y-1">
+                                          {Object.entries(app.matchBreakdown)
+                                            .filter(([key]) => key !== "fbiMostWanted")
+                                            .map(([key, item]) => (
+                                            <div
+                                              key={key}
+                                              className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-1.5 text-xs"
+                                            >
+                                              <div className="flex items-center gap-2">
+                                                {item.passed ? (
+                                                  <CheckCircle2 className="h-3.5 w-3.5 text-screening-green" />
+                                                ) : (
+                                                  <XCircle className="h-3.5 w-3.5 text-screening-red" />
+                                                )}
+                                                <span className="capitalize font-medium text-foreground">
+                                                  {key === "creditScore"
+                                                    ? "Credit Score"
+                                                    : key === "bankruptcy"
+                                                      ? "Bankruptcy"
+                                                      : key === "criminal"
+                                                        ? "Criminal"
+                                                        : key === "fraud"
+                                                          ? "Fraud Risk"
+                                                          : key.charAt(0).toUpperCase() + key.slice(1)}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-3">
+                                                <span className="text-muted-foreground">
+                                                  {item.detail}
+                                                </span>
+                                                {item.maxPoints > 0 && (
+                                                  <span className={`font-semibold ${
+                                                    item.passed ? "text-screening-green" : "text-screening-red"
+                                                  }`}>
+                                                    {item.points}/{item.maxPoints}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
-                                {/* Approve / Reject buttons */}
+                                {/* ── Approve / Reject buttons ── */}
                                 {(app.status === "pending" ||
                                   app.status === "screened") && (
                                   <div className="mt-4 flex gap-2">

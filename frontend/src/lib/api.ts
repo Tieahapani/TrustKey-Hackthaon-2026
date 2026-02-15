@@ -60,6 +60,37 @@ export interface Listing {
   updatedAt: string;
 }
 
+export interface FbiMostWanted {
+  matchFound: boolean;
+  matchCount: number;
+  searchedName: string;
+  crimes: {
+    name: string;
+    description: string;
+    subjects: string[];
+    warningMessage: string | null;
+    url: string | null;
+  }[];
+}
+
+export interface CrsData {
+  creditScore: number;
+  evictions: number;
+  bankruptcies: number;
+  criminalOffenses: number;
+  fraudRiskScore: number;
+  identityVerified: boolean;
+  fbiMostWanted: FbiMostWanted;
+  requestIds: Record<string, string>;
+}
+
+export interface MatchBreakdownItem {
+  passed: boolean;
+  points: number;
+  maxPoints: number;
+  detail: string;
+}
+
 export interface Application {
   _id: string;
   listingId: string;
@@ -67,16 +98,12 @@ export interface Application {
     | { _id: string; name: string; email: string; phone: string }
     | string;
   status: "pending" | "screened" | "approved" | "rejected";
-  crsData: {
-    creditScore: number;
-    evictions: number;
-    bankruptcies: number;
-    criminalRecords: number;
-    fraudFlag: boolean;
-  };
+  crsData: CrsData;
   matchScore: number;
-  matchBreakdown: Record<string, { passed: boolean; detail: string }>;
+  matchBreakdown: Record<string, MatchBreakdownItem>;
   matchColor: "green" | "yellow" | "red";
+  totalPoints: number;
+  earnedPoints: number;
   buyerInfo: {
     firstName: string;
     lastName: string;
