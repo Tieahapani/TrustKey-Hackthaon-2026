@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import TamboChatWidget from "@/components/TamboChatWidget";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -44,6 +45,8 @@ const App = () => (
             </div>
             <Footer />
           </div>
+          {/* Tambo floating chatbot - appears on all pages */}
+          <TamboChatWidget />
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>

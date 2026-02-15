@@ -1,5 +1,13 @@
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
+import { TamboProvider } from "@tambo-ai/react";
+import App from "./App";
 import "./index.css";
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <TamboProvider 
+    apiKey={import.meta.env.VITE_TAMBO_API_KEY}
+    userKey="property-buyer"
+  >
+    <App />
+  </TamboProvider>
+);

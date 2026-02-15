@@ -9,8 +9,8 @@ import {
   CheckCircle2, Send, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import PropertyChat from "@/components/PropertyChat";
-import { fetchListing, submitApplication, resolveImageUrl, type Listing } from "@/lib/api";
+import ScreeningBadge from "@/components/ScreeningBadge";
+import { fetchListing, submitApplication, resolveImageUrl, type Listing, type Application } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -43,6 +43,16 @@ export default function ListingDetail() {
       .catch(() => setListing(null))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Expose listing data to window for chatbot context
+  useEffect(() => {
+    if (listing) {
+      (window as any).__CURRENT_LISTING__ = listing;
+    }
+    return () => {
+      delete (window as any).__CURRENT_LISTING__;
+    };
+  }, [listing]);
 
   if (loading) {
     return (
@@ -233,9 +243,6 @@ export default function ListingDetail() {
                   Your data is secure and encrypted
                 </p>
               </div>
-
-              {/* AI Property Chat */}
-              <PropertyChat listingId={listing._id} />
             </div>
           </div>
         </div>

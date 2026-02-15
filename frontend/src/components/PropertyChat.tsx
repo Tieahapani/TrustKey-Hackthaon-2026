@@ -1,42 +1,27 @@
 /**
- * PropertyChat — AI-powered property assistant rendered inline within a
- * listing detail sidebar.  Communicates with the backend via
- * `chatWithAI` (RAG answer) and `textToSpeech` (audio playback).
+ * PropertyChat — AI-powered property assistant using Tambo AI.
+ * Rendered inline within a listing detail sidebar.
  *
  * @module PropertyChat
  */
 
-import { useState, useRef, useEffect, useCallback, type FormEvent } from "react";
-import { MessageCircle, X, Send, Volume2, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect, type FormEvent } from "react";
+import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { chatWithAI, textToSpeech } from "@/lib/api";
+import { useTambo, useTamboThreadInput } from "@tambo-ai/react";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-/** A single message in the conversation thread. */
-interface Message {
-  role: "user" | "assistant";
-  text: string;
-}
-
 /** Props accepted by `<PropertyChat />`. */
 interface PropertyChatProps {
   /** The listing this chat session is scoped to. */
   listingId: string;
+  /** Optional title for context */
+  listingTitle?: string;
 }
-
-/* ------------------------------------------------------------------ */
-/*  Constants                                                          */
-/* ------------------------------------------------------------------ */
-
-/** Greeting shown when the chat first opens. */
-const INITIAL_MESSAGE: Message = {
-  role: "assistant",
-  text: "Hi! I'm your AI property assistant. Ask me anything about this listing \u2014 amenities, neighborhood, pricing, and more.",
-};
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -44,24 +29,23 @@ const INITIAL_MESSAGE: Message = {
 
 /**
  * Inline card-style chat widget that lets buyers ask AI-powered questions
- * about a specific property listing.
- *
- * Designed to sit inside a sidebar on the listing detail page rather than
- * floating in a fixed position.
+ * about a specific property listing using Tambo AI.
  *
  * @param props - Component props.
  * @param props.listingId - ID of the listing to scope questions to.
+ * @param props.listingTitle - Optional title for additional context.
  */
-export default function PropertyChat({ listingId }: PropertyChatProps) {
+export default function PropertyChat({ listingId, listingTitle }: PropertyChatProps) {
   /* ---- state ---- */
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+  const [threadId, setThreadId] = useState<string>();
 
   /* ---- refs ---- */
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  /* ---- Tambo hooks ---- */
+  const { messages, isStreaming } = useTambo();
+  const { value, setValue, submit, isPending } = useTamboThreadInput();
 
   /* ---- auto-scroll on new messages ---- */
   useEffect(() => {
@@ -69,99 +53,18 @@ export default function PropertyChat({ listingId }: PropertyChatProps) {
       top: scrollRef.current.scrollHeight,
       behavior: "smooth",
     });
-  }, [messages, loading]);
+  }, [messages]);
 
-  /* ---- reset conversation when listing changes ---- */
-  useEffect(() => {
-    setMessages([INITIAL_MESSAGE]);
-    setInput("");
-    setLoading(false);
-    setSpeakingIdx(null);
-  }, [listingId]);
+  /* ---- handlers ---- */
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!value.trim() || isPending) return;
 
-  /* ---------------------------------------------------------------- */
-  /*  Handlers                                                         */
-  /* ---------------------------------------------------------------- */
-
-  /**
-   * Send the current input to the backend AI chat endpoint and append
-   * the response to the conversation.
-   */
-  const send = useCallback(async () => {
-    const question = input.trim();
-    if (!question || loading) return;
-
-    setInput("");
-    setMessages((prev) => [...prev, { role: "user", text: question }]);
-    setLoading(true);
-
-    try {
-      const { answer } = await chatWithAI(listingId, question);
-      setMessages((prev) => [...prev, { role: "assistant", text: answer }]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: "Sorry, I wasn\u2019t able to get an answer right now. Please try again in a moment.",
-        },
-      ]);
-    } finally {
-      setLoading(false);
+    const result = await submit();
+    if (!threadId && result?.threadId) {
+      setThreadId(result.threadId);
     }
-  }, [input, loading, listingId]);
-
-  /**
-   * Convert an assistant message to speech via the backend TTS endpoint
-   * and play the resulting audio.
-   *
-   * @param text - The message text to speak.
-   * @param idx  - Index of the message (used to track the active speaker icon).
-   */
-  const speak = useCallback(
-    async (text: string, idx: number) => {
-      if (speakingIdx !== null) return; // already playing
-      setSpeakingIdx(idx);
-
-      try {
-        const blob = await textToSpeech(text);
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-
-        audio.onended = () => {
-          URL.revokeObjectURL(url);
-          setSpeakingIdx(null);
-        };
-
-        audio.onerror = () => {
-          URL.revokeObjectURL(url);
-          setSpeakingIdx(null);
-        };
-
-        await audio.play();
-      } catch {
-        // TTS failed — fall back to browser speech synthesis
-        if ("speechSynthesis" in window) {
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.onend = () => setSpeakingIdx(null);
-          utterance.onerror = () => setSpeakingIdx(null);
-          window.speechSynthesis.speak(utterance);
-        } else {
-          setSpeakingIdx(null);
-        }
-      }
-    },
-    [speakingIdx],
-  );
-
-  /** Form submit handler that prevents default and delegates to `send`. */
-  const handleSubmit = useCallback(
-    (e: FormEvent) => {
-      e.preventDefault();
-      send();
-    },
-    [send],
-  );
+  };
 
   /* ---------------------------------------------------------------- */
   /*  Render                                                           */
@@ -218,38 +121,48 @@ export default function PropertyChat({ listingId }: PropertyChatProps) {
               ref={scrollRef}
               className="flex-1 space-y-3 overflow-y-auto p-4"
             >
-              {messages.map((m, i) => (
-                <div
-                  key={i}
-                  className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`relative max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
-                      m.role === "user"
-                        ? "rounded-br-md bg-primary text-primary-foreground"
-                        : "rounded-bl-md bg-muted text-foreground"
-                    }`}
-                  >
-                    {m.text}
-                    {m.role === "assistant" && (
-                      <button
-                        onClick={() => speak(m.text, i)}
-                        disabled={speakingIdx !== null}
-                        className="ml-1 inline-flex align-middle text-muted-foreground hover:text-foreground disabled:opacity-40"
-                        title="Listen"
-                        aria-label="Read message aloud"
-                      >
-                        <Volume2
-                          className={`h-3.5 w-3.5 ${speakingIdx === i ? "animate-pulse" : ""}`}
-                        />
-                      </button>
-                    )}
+              {/* Initial greeting if no messages */}
+              {messages.length === 0 && (
+                <div className="flex justify-start">
+                  <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-muted px-3.5 py-2.5 text-sm text-foreground">
+                    Hi! I'm your AI property assistant. Ask me anything about this listing — amenities, neighborhood, pricing, and more.
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Render messages from Tambo */}
+              {messages.map((m, i) => {
+                // Extract text content from Tambo's Content type
+                const textContent = Array.isArray(m.content)
+                  ? m.content.map((c) => {
+                      if (typeof c === 'string') return c;
+                      if ('text' in c) return c.text;
+                      return '';
+                    }).join('')
+                  : typeof m.content === 'string'
+                  ? m.content
+                  : '';
+
+                return (
+                  <div
+                    key={i}
+                    className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
+                        m.role === "user"
+                          ? "rounded-br-md bg-primary text-primary-foreground"
+                          : "rounded-bl-md bg-muted text-foreground"
+                      }`}
+                    >
+                      {textContent}
+                    </div>
+                  </div>
+                );
+              })}
 
               {/* Loading indicator */}
-              {loading && (
+              {(isPending || isStreaming) && (
                 <div className="flex justify-start">
                   <div className="rounded-2xl rounded-bl-md bg-muted px-4 py-3">
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -262,15 +175,15 @@ export default function PropertyChat({ listingId }: PropertyChatProps) {
             <div className="border-t border-border p-3">
               <form onSubmit={handleSubmit} className="flex items-center gap-2">
                 <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
                   placeholder="Ask about this property..."
                   className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
                 />
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={loading || !input.trim()}
+                  disabled={isPending || !value.trim()}
                 >
                   <Send className="h-4 w-4" />
                 </Button>
