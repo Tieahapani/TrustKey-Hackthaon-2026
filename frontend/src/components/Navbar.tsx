@@ -19,22 +19,22 @@ const buyerLinks = [
 ];
 
 export default function Navbar() {
-  const { user, isAuthenticated, logout, switchRole } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Derive selected role from user state or URL
-  const [selectedRole, setSelectedRole] = useState<"buyer" | "seller">(
-    user?.role === "seller" || location.pathname === "/dashboard" ? "seller" : "buyer"
+  // Derive selected view from URL
+  const sellerPaths = ["/dashboard", "/my-listings", "/create-listing"];
+  const [selectedView, setSelectedView] = useState<"buy" | "sell">(
+    sellerPaths.includes(location.pathname) ? "sell" : "buy"
   );
 
-  const visibleLinks = selectedRole === "seller" ? sellerLinks : buyerLinks;
+  const visibleLinks = selectedView === "sell" ? sellerLinks : buyerLinks;
 
-  const handleRoleSwitch = (role: "buyer" | "seller") => {
-    setSelectedRole(role);
-    if (isAuthenticated) switchRole(role);
-    navigate(role === "seller" ? "/dashboard" : "/");
+  const handleViewSwitch = (view: "buy" | "sell") => {
+    setSelectedView(view);
+    navigate(view === "sell" ? "/dashboard" : "/");
   };
 
   return (
@@ -72,12 +72,12 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
-          {/* Buyer / Seller toggle */}
+          {/* Buy / Sell view toggle */}
           <div className="flex items-center rounded-lg border border-border bg-muted/50 p-0.5">
             <button
-              onClick={() => handleRoleSwitch("buyer")}
+              onClick={() => handleViewSwitch("buy")}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                selectedRole === "buyer"
+                selectedView === "buy"
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
@@ -85,9 +85,9 @@ export default function Navbar() {
               Buy
             </button>
             <button
-              onClick={() => handleRoleSwitch("seller")}
+              onClick={() => handleViewSwitch("sell")}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                selectedRole === "seller"
+                selectedView === "sell"
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
@@ -138,12 +138,12 @@ export default function Navbar() {
             className="overflow-hidden border-t border-border md:hidden bg-card"
           >
             <div className="flex flex-col gap-1 p-4">
-              {/* Mobile role toggle */}
+              {/* Mobile view toggle */}
               <div className="flex items-center rounded-lg border border-border bg-muted/50 p-0.5 mb-2">
                 <button
-                  onClick={() => handleRoleSwitch("buyer")}
+                  onClick={() => handleViewSwitch("buy")}
                   className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                    selectedRole === "buyer"
+                    selectedView === "buy"
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
@@ -151,9 +151,9 @@ export default function Navbar() {
                   Buy
                 </button>
                 <button
-                  onClick={() => handleRoleSwitch("seller")}
+                  onClick={() => handleViewSwitch("sell")}
                   className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                    selectedRole === "seller"
+                    selectedView === "sell"
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   }`}

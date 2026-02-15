@@ -38,7 +38,6 @@ async function loginUser(
     firebaseUid: "fb1",
     email: "test@test.com",
     name: "Test",
-    role: "buyer" as const,
     phone: "",
   }
 ) {
@@ -95,26 +94,6 @@ describe("AuthContext", () => {
     expect(result.current.isAuthenticated).toBe(false);
   });
 
-  it("switchRole updates user role", async () => {
-    const { result } = renderHook(() => useAuth(), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    // Log in to get a user
-    await loginUser(result);
-
-    expect(result.current.user).not.toBeNull();
-    expect(result.current.user?.role).toBe("buyer");
-
-    act(() => {
-      result.current.switchRole("seller");
-    });
-
-    expect(result.current.user?.role).toBe("seller");
-  });
-
   it("login calls signInWithEmailAndPassword", async () => {
     (signInWithEmailAndPassword as ReturnType<typeof vi.fn>).mockResolvedValue({
       user: { getIdToken: vi.fn().mockResolvedValue("token") },
@@ -125,7 +104,6 @@ describe("AuthContext", () => {
       firebaseUid: "fb1",
       email: "test@test.com",
       name: "Test",
-      role: "buyer",
       phone: "",
     };
     mockApi.get.mockResolvedValue({ data: mockProfile });

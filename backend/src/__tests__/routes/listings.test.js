@@ -96,7 +96,6 @@ describe('/api/listings', () => {
         firebaseUid: 'buyer1',
         email: 'buyer@test.com',
         name: 'Other Seller',
-        role: 'seller',
       });
       await seedListing(otherSeller._id, { title: 'Other Listing' });
 
@@ -196,7 +195,7 @@ describe('/api/listings', () => {
     it('returns 403 when a non-owner tries to update', async () => {
       const listing = await seedListing(seller._id);
       // Create another user (buyer1)
-      await createTestUser({ firebaseUid: 'buyer1', email: 'buyer@test.com', name: 'Buyer', role: 'buyer' });
+      await createTestUser({ firebaseUid: 'buyer1', email: 'buyer@test.com', name: 'Buyer' });
       const res = await request(app)
         .put(`/api/listings/${listing._id}`)
         .set(getAuthHeader('valid-token-buyer1'))
@@ -234,7 +233,7 @@ describe('/api/listings', () => {
 
     it('returns 403 when a non-owner tries to delete', async () => {
       const listing = await seedListing(seller._id);
-      await createTestUser({ firebaseUid: 'buyer1', email: 'buyer@test.com', name: 'Buyer', role: 'buyer' });
+      await createTestUser({ firebaseUid: 'buyer1', email: 'buyer@test.com', name: 'Buyer' });
       const res = await request(app)
         .delete(`/api/listings/${listing._id}`)
         .set(getAuthHeader('valid-token-buyer1'));

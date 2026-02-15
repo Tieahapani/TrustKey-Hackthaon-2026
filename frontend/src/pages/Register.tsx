@@ -1,6 +1,5 @@
 /**
  * Registration page — creates a Firebase user then a backend profile.
- * Role is always "buyer" by default; users switch via the navbar toggle.
  */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -31,7 +30,7 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      await register(email, password, fullName, "buyer");
+      await register(email, password, fullName);
       navigate("/");
     } catch (err: any) {
       const code = err?.code || "";

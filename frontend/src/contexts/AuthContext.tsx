@@ -30,24 +30,21 @@ export interface UserProfile {
   firebaseUid: string;
   email: string;
   name: string;
-  role: "buyer" | "seller";
   phone: string;
 }
 
 /** Shape exposed by useAuth() */
 interface AuthContextType {
-  user: { id: string; email: string; role: "buyer" | "seller"; name: string } | null;
+  user: { id: string; email: string; name: string } | null;
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (
     email: string,
     password: string,
-    name: string,
-    role: "buyer" | "seller"
+    name: string
   ) => Promise<void>;
   logout: () => void;
-  switchRole: (role: "buyer" | "seller") => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -77,7 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const toUser = (p: UserProfile) => ({
     id: p._id,
     email: p.email,
-    role: p.role,
     name: p.name,
   });
 
@@ -131,15 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (
       email: string,
       password: string,
-      name: string,
-      role: "buyer" | "seller"
+      name: string
     ) => {
       suppressListenerRef.current = true;
       try {
         await createUserWithEmailAndPassword(auth, email, password);
         const { data } = await api.post<UserProfile>("/api/users/register", {
           name,
-          role,
         });
         setUser(toUser(data));
         setLoading(false);
@@ -161,13 +155,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const switchRole = useCallback((role: "buyer" | "seller") => {
-    setUser((prev) => (prev ? { ...prev, role } : prev));
-  }, []);
-
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, loading, login, register, logout, switchRole }}
+      value={{ user, isAuthenticated: !!user, loading, login, register, logout }}
     >
       {children}
     </AuthContext.Provider>

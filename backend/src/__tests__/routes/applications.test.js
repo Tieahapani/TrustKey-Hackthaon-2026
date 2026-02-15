@@ -34,7 +34,6 @@ describe('/api/applications', () => {
       firebaseUid: 'buyer1',
       email: 'buyer@test.com',
       name: 'Test Buyer',
-      role: 'buyer',
     });
     listing = await seedListing(seller._id, {
       screeningCriteria: {
@@ -175,7 +174,6 @@ describe('/api/applications', () => {
         firebaseUid: 'buyer2',
         email: 'buyer2@test.com',
         name: 'Buyer Two',
-        role: 'buyer',
       });
       await seedApplication(buyer._id, listing._id, { matchScore: 70, matchColor: 'yellow' });
       await seedApplication(buyer2._id, listing._id, { matchScore: 95, matchColor: 'green' });
@@ -221,7 +219,6 @@ describe('/api/applications', () => {
         firebaseUid: 'buyer2',
         email: 'buyer2@test.com',
         name: 'Buyer Two',
-        role: 'buyer',
       });
       await seedApplication(buyer2._id, listing._id);
 

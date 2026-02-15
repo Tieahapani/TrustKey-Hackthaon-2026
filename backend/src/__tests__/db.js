@@ -37,7 +37,6 @@ async function createTestUser(overrides = {}) {
     firebaseUid: 'seller1',
     email: 'seller@test.com',
     name: 'Test Seller',
-    role: 'seller',
     phone: '',
   };
   return User.create({ ...defaults, ...overrides });

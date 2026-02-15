@@ -16,7 +16,6 @@ describe('User model', () => {
     firebaseUid: 'uid-1',
     email: 'test@example.com',
     name: 'Test User',
-    role: 'buyer',
   };
 
   it('requires firebaseUid', async () => {
@@ -32,24 +31,6 @@ describe('User model', () => {
   it('requires name', async () => {
     const user = new User({ ...validUser, name: undefined });
     await expect(user.validate()).rejects.toThrow();
-  });
-
-  it('requires role', async () => {
-    const user = new User({ ...validUser, role: undefined });
-    await expect(user.validate()).rejects.toThrow();
-  });
-
-  it('only allows buyer or seller role', async () => {
-    const user = new User({ ...validUser, role: 'admin' });
-    await expect(user.validate()).rejects.toThrow();
-  });
-
-  it('accepts buyer and seller roles', async () => {
-    const buyer = new User({ ...validUser, role: 'buyer' });
-    await expect(buyer.validate()).resolves.toBeUndefined();
-
-    const seller = new User({ ...validUser, role: 'seller', firebaseUid: 'uid-2', email: 'seller@x.com' });
-    await expect(seller.validate()).resolves.toBeUndefined();
   });
 
   it('enforces unique firebaseUid', async () => {
@@ -82,7 +63,6 @@ describe('Listing model', () => {
       firebaseUid: 'listing-seller',
       email: 'ls@test.com',
       name: 'Listing Seller',
-      role: 'seller',
     });
     sellerId = user._id;
   });
@@ -169,13 +149,11 @@ describe('Application model', () => {
       firebaseUid: 'app-seller',
       email: 'appseller@test.com',
       name: 'App Seller',
-      role: 'seller',
     });
     const buyer = await User.create({
       firebaseUid: 'app-buyer',
       email: 'appbuyer@test.com',
       name: 'App Buyer',
-      role: 'buyer',
     });
     buyerId = buyer._id;
 

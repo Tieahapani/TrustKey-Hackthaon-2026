@@ -17,7 +17,6 @@ vi.mock("@/contexts/AuthContext", () => ({
     loading: false,
     login: vi.fn(),
     logout: vi.fn(),
-    switchRole: vi.fn(),
   }),
 }));
 
@@ -89,7 +88,7 @@ describe("Register page", () => {
     });
   });
 
-  it("calls register with email, password, name, 'buyer' on valid submit", async () => {
+  it("calls register with email, password, name on valid submit", async () => {
     render(<Register />);
 
     fireEvent.change(screen.getByPlaceholderText("Jane Doe"), {
@@ -109,8 +108,7 @@ describe("Register page", () => {
       expect(mockRegister).toHaveBeenCalledWith(
         "john@test.com",
         "password123",
-        "John Doe",
-        "buyer"
+        "John Doe"
       );
     });
   });

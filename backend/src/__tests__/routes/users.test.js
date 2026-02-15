@@ -12,7 +12,7 @@ describe('/api/users', () => {
     it('returns 401 when no auth token is provided', async () => {
       const res = await request(app)
         .post('/api/users/register')
-        .send({ name: 'Alice', role: 'buyer' });
+        .send({ name: 'Alice' });
       expect(res.status).toBe(401);
     });
 
@@ -20,38 +20,20 @@ describe('/api/users', () => {
       const res = await request(app)
         .post('/api/users/register')
         .set(getAuthHeader('valid-token-seller1'))
-        .send({ role: 'seller' });
+        .send({});
       expect(res.status).toBe(400);
       expect(res.body.error).toBeDefined();
-    });
-
-    it('returns 400 when role is missing', async () => {
-      const res = await request(app)
-        .post('/api/users/register')
-        .set(getAuthHeader('valid-token-seller1'))
-        .send({ name: 'Alice' });
-      expect(res.status).toBe(400);
-    });
-
-    it('returns 400 for an invalid role', async () => {
-      const res = await request(app)
-        .post('/api/users/register')
-        .set(getAuthHeader('valid-token-seller1'))
-        .send({ name: 'Alice', role: 'admin' });
-      expect(res.status).toBe(400);
-      expect(res.body.error).toMatch(/role/i);
     });
 
     it('returns 201 and creates a new user', async () => {
       const res = await request(app)
         .post('/api/users/register')
         .set(getAuthHeader('valid-token-seller1'))
-        .send({ name: 'Test Seller', role: 'seller' });
+        .send({ name: 'Test Seller' });
       expect(res.status).toBe(201);
       expect(res.body.firebaseUid).toBe('seller1');
       expect(res.body.email).toBe('seller@test.com');
       expect(res.body.name).toBe('Test Seller');
-      expect(res.body.role).toBe('seller');
     });
 
     it('returns 200 with existing user if already registered (idempotent)', async () => {
@@ -59,7 +41,7 @@ describe('/api/users', () => {
       const res = await request(app)
         .post('/api/users/register')
         .set(getAuthHeader('valid-token-seller1'))
-        .send({ name: 'Different Name', role: 'buyer' });
+        .send({ name: 'Different Name' });
       // Route returns existing user with 200
       expect(res.status).toBe(200);
       expect(res.body.firebaseUid).toBe('seller1');
@@ -70,7 +52,7 @@ describe('/api/users', () => {
       const res = await request(app)
         .post('/api/users/register')
         .set(getAuthHeader('valid-token-buyer1'))
-        .send({ name: 'Buyer One', role: 'buyer' });
+        .send({ name: 'Buyer One' });
       expect(res.status).toBe(201);
       expect(res.body.phone).toBe('');
     });
@@ -104,13 +86,12 @@ describe('/api/users', () => {
     });
 
     it('returns the correct user for buyer1 token', async () => {
-      await createTestUser({ firebaseUid: 'buyer1', email: 'buyer@test.com', name: 'Test Buyer', role: 'buyer' });
+      await createTestUser({ firebaseUid: 'buyer1', email: 'buyer@test.com', name: 'Test Buyer' });
       const res = await request(app)
         .get('/api/users/me')
         .set(getAuthHeader('valid-token-buyer1'));
       expect(res.status).toBe(200);
       expect(res.body.firebaseUid).toBe('buyer1');
-      expect(res.body.role).toBe('buyer');
     });
   });
 });
