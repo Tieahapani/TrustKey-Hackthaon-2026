@@ -2,6 +2,8 @@
 
 A housing marketplace where sellers list properties, buyers get instantly screened via CRS Credit API, and an AI voice assistant answers questions about any listing.
 
+_Last updated: Feb 2026_
+
 ## Tech Stack
 
 - **Frontend**: React + Vite + Tailwind CSS + shadcn/ui
