@@ -2,8 +2,18 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 
-// Load service account: supports file path or raw JSON string
+// Load service account: supports base64, file path, or raw JSON string
 function loadServiceAccount() {
+  // Try base64-encoded value first (most reliable for Vercel)
+  const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+  if (b64) {
+    try {
+      return JSON.parse(Buffer.from(b64, 'base64').toString('utf8'));
+    } catch (e) {
+      console.warn('FIREBASE_SERVICE_ACCOUNT_BASE64 invalid');
+    }
+  }
+
   const val = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (!val) return null;
 
