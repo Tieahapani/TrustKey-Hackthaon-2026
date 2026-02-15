@@ -32,7 +32,6 @@ async function getCrsToken() {
     const { token, expires } = response.data;
     if (token) {
       cachedToken = token;
-      // CRS tokens typically expire in 3600 seconds
       tokenExpiresAt = Date.now() + (expires || 3600) * 1000;
       return token;
     }
@@ -104,266 +103,224 @@ function countOccurrences(obj, ...keys) {
   return count;
 }
 
+// ============================================
+// SANDBOX TEST IDENTITIES (from CRS MCP server)
+// Index 0-1: Clean profiles (should qualify)
+// Index 2-3: Risky profiles (should fail checks)
+// ============================================
+
 /**
- * Sandbox test identities for TransUnion credit reports.
- * Index 0-1: Good credit profiles (should qualify)
- * Index 2-3: Poor credit profiles (should not qualify)
+ * TransUnion credit reports — all official MCP test identities return real credit data.
  */
 const TU_TEST_IDENTITIES = [
-  // Good: score ~735, no bankruptcies, clean history
+  // 0: Clean — DIANE BARABAS (California)
   {
-    firstName: 'BARBARA',
-    middleName: 'M',
-    lastName: 'DOTY',
-    suffix: '',
-    birthDate: '1966-01-04',
-    ssn: '000000000',
-    addresses: [
-      {
-        borrowerResidencyType: 'Current',
-        addressLine1: '1100 LYNHURST LN',
-        addressLine2: '',
-        city: 'DENTON',
-        state: 'TX',
-        postalCode: '762058006',
-      },
-    ],
+    firstName: 'DIANE', middleName: '', lastName: 'BARABAS', suffix: '',
+    ssn: '666283370', birthDate: '',
+    addresses: [{
+      borrowerResidencyType: 'Current',
+      addressLine1: '19955 N MADERA AVE', addressLine2: ' ',
+      city: 'KERMAN', state: 'CA', postalCode: '93630',
+    }],
   },
-  // Good: same identity, consistent good score for demo
+  // 1: Clean — EILEEN BRADY (New Jersey)
   {
-    firstName: 'BARBARA',
-    middleName: 'M',
-    lastName: 'DOTY',
-    suffix: '',
-    birthDate: '1966-01-04',
-    ssn: '000000000',
-    addresses: [
-      {
-        borrowerResidencyType: 'Current',
-        addressLine1: '1100 LYNHURST LN',
-        addressLine2: '',
-        city: 'DENTON',
-        state: 'TX',
-        postalCode: '762058006',
-      },
-    ],
+    firstName: 'EILEEN', middleName: 'M', lastName: 'BRADY', suffix: '',
+    ssn: '666883007', birthDate: '1972-11-22',
+    addresses: [{
+      borrowerResidencyType: 'Current',
+      addressLine1: '31 LONDON CT', addressLine2: ' ',
+      city: 'PLEASANTVILLE', state: 'NJ', postalCode: '082344434',
+    }],
   },
-  // Poor: low score profile for demo rejection
+  // 2: Risky — EUGENE BEAUPRE (California) — still returns credit, but paired with bad eviction/criminal
   {
-    firstName: 'JONATHAN',
-    middleName: 'A',
-    lastName: 'CASEY',
-    suffix: '',
-    birthDate: '1980-07-15',
-    ssn: '000000001',
-    addresses: [
-      {
-        borrowerResidencyType: 'Current',
-        addressLine1: '456 OAK AVE',
-        addressLine2: '',
-        city: 'DALLAS',
-        state: 'TX',
-        postalCode: '75201',
-      },
-    ],
+    firstName: 'EUGENE', middleName: 'F', lastName: 'BEAUPRE', suffix: '',
+    ssn: '666582109', birthDate: '1955-06-23',
+    addresses: [{
+      borrowerResidencyType: 'Current',
+      addressLine1: '5151 N CEDAR AVE', addressLine2: 'APT 102',
+      city: 'FRESNO', state: 'CA', postalCode: '937107453',
+    }],
   },
-  // Poor: another low score profile
+  // 3: Risky — NATALIE BLACK (Kentucky) — still returns credit, paired with bad eviction/criminal
   {
-    firstName: 'MARIA',
-    middleName: 'L',
-    lastName: 'TORRES',
-    suffix: '',
-    birthDate: '1975-03-22',
-    ssn: '000000002',
-    addresses: [
-      {
-        borrowerResidencyType: 'Current',
-        addressLine1: '789 PINE ST',
-        addressLine2: '',
-        city: 'HOUSTON',
-        state: 'TX',
-        postalCode: '77001',
-      },
-    ],
+    firstName: 'NATALIE', middleName: 'A', lastName: 'BLACK', suffix: '',
+    ssn: '666207378', birthDate: '',
+    addresses: [{
+      borrowerResidencyType: 'Current',
+      addressLine1: '46 E 41ST ST', addressLine2: '# 2',
+      city: 'COVINGTON', state: 'KY', postalCode: '410151711',
+    }],
   },
 ];
 
 /**
- * Sandbox test identities for Eviction reports.
- * Index 0-1: Clean (no evictions)
- * Index 2-3: Has eviction records
+ * Eviction reports (CIC format).
+ * Index 0-1: TU identities reformatted for CIC — NOT in CIC DB, so return 0 evictions.
+ * Index 2-3: Official CIC test identities — HAVE eviction records.
  */
 const EVICTION_TEST_IDENTITIES = [
-  // Clean: no eviction records
+  // 0: Clean — DIANE BARABAS (not in CIC DB → 0 evictions)
   {
-    reference: 'homescreen-clean-1',
+    reference: 'homescreen-evic-clean-0',
     subjectInfo: {
-      last: 'Smith',
-      first: 'John',
-      middle: '',
-      dob: '01-01-1990',
-      ssn: '000-00-0000',
-      houseNumber: '100',
-      streetName: 'Main',
-      city: 'Anytown',
-      state: 'CA',
-      zip: '90210',
+      first: 'DIANE', middle: '', last: 'BARABAS',
+      dob: '01-01-1970', ssn: '666-28-3370',
+      houseNumber: '19955', streetName: 'N MADERA AVE',
+      city: 'KERMAN', state: 'CA', zip: '93630',
     },
   },
-  // Clean: no eviction records
+  // 1: Clean — EILEEN BRADY (not in CIC DB → 0 evictions)
   {
-    reference: 'homescreen-clean-2',
+    reference: 'homescreen-evic-clean-1',
     subjectInfo: {
-      last: 'Johnson',
-      first: 'Sarah',
-      middle: '',
-      dob: '05-15-1985',
-      ssn: '000-00-0001',
-      houseNumber: '200',
-      streetName: 'Elm',
-      city: 'Springfield',
-      state: 'CA',
-      zip: '90211',
+      first: 'EILEEN', middle: 'M', last: 'BRADY',
+      dob: '11-22-1972', ssn: '666-88-3007',
+      houseNumber: '31', streetName: 'LONDON CT',
+      city: 'PLEASANTVILLE', state: 'NJ', zip: '08234',
     },
   },
-  // Has evictions: 3 records
+  // 2: Has evictions — Kris Consumer (official CIC test identity)
   {
-    reference: 'homescreen-evict-1',
+    reference: 'homescreen-evic-hit-2',
     subjectInfo: {
-      last: 'Chuang',
-      first: 'Harold',
-      middle: '',
-      dob: '01-01-1982',
-      ssn: '666-44-3321',
-      houseNumber: '1803',
-      streetName: 'Norma',
-      city: 'Cottonwood',
-      state: 'CA',
-      zip: '91502',
+      first: 'Kris', middle: 'X', last: 'Consumer',
+      dob: '01-02-1982', ssn: '666-44-3322',
+      houseNumber: '272', streetName: 'LANDINGS',
+      city: 'MERRITT ISLAND', state: 'FL', zip: '32952',
     },
   },
-  // Has evictions: same test subject for consistent results
+  // 3: Has evictions — Harold Chuang (official CIC test identity)
   {
-    reference: 'homescreen-evict-2',
+    reference: 'homescreen-evic-hit-3',
     subjectInfo: {
-      last: 'Chuang',
-      first: 'Harold',
-      middle: '',
-      dob: '01-01-1982',
-      ssn: '666-44-3321',
-      houseNumber: '1803',
-      streetName: 'Norma',
-      city: 'Cottonwood',
-      state: 'CA',
-      zip: '91502',
+      first: 'Harold', middle: 'X', last: 'Chuang',
+      dob: '01-11-1982', ssn: '666-44-3331',
+      houseNumber: '272', streetName: 'LANDINGS',
+      city: 'MERRITT ISLAND', state: 'FL', zip: '32952',
     },
   },
 ];
 
 /**
- * Sandbox test identities for Criminal reports.
- * Index 0-1: Clean (no criminal records — fake names not in CRS sandbox)
- * Index 2-3: Has criminal records (Jonathan Consumer — CRS sandbox test case)
+ * Criminal reports (CIC format).
+ * Index 0-1: TU identities reformatted — NOT in CIC DB, so return 0 criminal.
+ * Index 2-3: Official CIC test identities — HAVE criminal records.
  */
 const CRIMINAL_TEST_IDENTITIES = [
+  // 0: Clean — DIANE BARABAS (not in CIC DB → 0 criminal)
+  {
+    reference: 'homescreen-crim-clean-0',
+    subjectInfo: {
+      first: 'DIANE', middle: '', last: 'BARABAS',
+      dob: '01-01-1970', ssn: '666-28-3370',
+      houseNumber: '19955', streetName: 'N MADERA AVE',
+      city: 'KERMAN', state: 'CA', zip: '93630',
+    },
+  },
+  // 1: Clean — EILEEN BRADY (not in CIC DB → 0 criminal)
   {
     reference: 'homescreen-crim-clean-1',
     subjectInfo: {
-      last: 'Smith', first: 'John', middle: '',
-      dob: '01-01-1990', ssn: '000-00-0000',
-      houseNumber: '100', streetName: 'Main',
-      city: 'Anytown', state: 'CA', zip: '90210',
+      first: 'EILEEN', middle: 'M', last: 'BRADY',
+      dob: '11-22-1972', ssn: '666-88-3007',
+      houseNumber: '31', streetName: 'LONDON CT',
+      city: 'PLEASANTVILLE', state: 'NJ', zip: '08234',
     },
   },
-  {
-    reference: 'homescreen-crim-clean-2',
-    subjectInfo: {
-      last: 'Johnson', first: 'Sarah', middle: '',
-      dob: '05-15-1985', ssn: '000-00-0001',
-      houseNumber: '200', streetName: 'Elm',
-      city: 'Springfield', state: 'CA', zip: '90211',
-    },
-  },
-  {
-    reference: 'homescreen-crim-hit-1',
-    subjectInfo: {
-      last: 'Consumer', first: 'Jonathan', middle: '',
-      dob: '01-01-1982', ssn: '666-44-3321',
-      houseNumber: '1803', streetName: 'Norma',
-      city: 'Cottonwood', state: 'CA', zip: '91502',
-    },
-  },
+  // 2: Has criminal — Jennifer Ray (official CIC test identity)
   {
     reference: 'homescreen-crim-hit-2',
     subjectInfo: {
-      last: 'Consumer', first: 'Jonathan', middle: '',
-      dob: '01-01-1982', ssn: '666-44-3321',
-      houseNumber: '1803', streetName: 'Norma',
-      city: 'Cottonwood', state: 'CA', zip: '91502',
+      first: 'Jennifer', middle: 'X', last: 'Ray',
+      dob: '09-03-1972', ssn: '123-45-6789',
+      houseNumber: '275', streetName: 'LANDINGS',
+      city: 'MERRITT ISLAND', state: 'FL', zip: '32955',
+    },
+  },
+  // 3: Has criminal — Harold Chuang (official CIC test identity)
+  {
+    reference: 'homescreen-crim-hit-3',
+    subjectInfo: {
+      first: 'Harold', middle: 'X', last: 'Chuang',
+      dob: '02-28-1965', ssn: '123-45-6789',
+      houseNumber: '272', streetName: 'LANDINGS',
+      city: 'MERRITT ISLAND', state: 'FL', zip: '32952',
     },
   },
 ];
 
 /**
- * Sandbox test identities for LexisNexis Consumer Flex ID (identity verification).
- * Index 0-1: Verified identity (NATALIE KORZEC — CRS sandbox test case)
- * Index 2-3: Unverified / risky identity (fake names not in CRS sandbox)
+ * FlexID — LexisNexis identity verification.
+ * Index 0-1: Official MCP test identities (verified).
+ * Index 2-3: Fake identities (will fail verification).
+ * NOTE: Field is streetAddress1 (not streetAddress).
  */
 const FLEX_ID_TEST_IDENTITIES = [
+  // 0: Verified — MIRANDA JJUNIPER (official MCP test)
   {
-    firstName: 'NATALIE', lastName: 'KORZEC', ssn: '7537',
-    dateOfBirth: '1940-12-23', streetAddress: '801 E OGDEN 1011',
-    city: 'VAUGHN', state: 'WA', zipCode: '98394', homePhone: '5031234567',
+    firstName: 'MIRANDA', lastName: 'JJUNIPER',
+    ssn: '540325127', dateOfBirth: '1955-11-13',
+    streetAddress1: '1678 NE 41ST',
+    city: 'ATLANTA', state: 'GA', zipCode: '30302', homePhone: '4786251234',
   },
+  // 1: Verified — JOHN COPE (official MCP test, has SSN)
   {
-    firstName: 'NATALIE', lastName: 'KORZEC', ssn: '7537',
-    dateOfBirth: '1940-12-23', streetAddress: '801 E OGDEN 1011',
-    city: 'VAUGHN', state: 'WA', zipCode: '98394', homePhone: '5031234567',
+    firstName: 'JOHN', lastName: 'COPE',
+    ssn: '574709961', dateOfBirth: '1973-08-01',
+    streetAddress1: '511 SYCAMORE AVE',
+    city: 'HAYWARD', state: 'CA', zipCode: '94544', homePhone: '5105811251',
   },
+  // 2: Unverified — fake identity (will fail → fraud flag)
   {
     firstName: 'FAKE', lastName: 'PERSON', ssn: '0000',
-    dateOfBirth: '1999-01-01', streetAddress: '999 NOWHERE ST',
+    dateOfBirth: '1999-01-01', streetAddress1: '999 NOWHERE ST',
     city: 'FAKETOWN', state: 'CA', zipCode: '00000', homePhone: '0000000000',
   },
+  // 3: Unverified — fake identity (will fail → fraud flag)
   {
     firstName: 'FAKE', lastName: 'PERSON', ssn: '0000',
-    dateOfBirth: '1999-01-01', streetAddress: '999 NOWHERE ST',
+    dateOfBirth: '1999-01-01', streetAddress1: '999 NOWHERE ST',
     city: 'FAKETOWN', state: 'CA', zipCode: '00000', homePhone: '0000000000',
   },
 ];
 
 /**
- * Sandbox test identities for Fraud Finder (fraud pattern detection).
- * Uses different body format than Flex ID: { firstName, lastName, phoneNumber, email, ipAddress, address: {...} }
- * Index 0-1: Clean identity (from Postman collection test case)
- * Index 2-3: Risky / fake identity
+ * Fraud Finder — AtData email/phone fraud prevention.
+ * Index 0-1: Official MCP test payloads (clean, low risk).
+ * Index 2-3: Fake identities (will fail or return high risk).
  */
 const FRAUD_FINDER_TEST_IDENTITIES = [
+  // 0: Clean — official CRS example (example@atdata.com returns valid)
   {
+    email: 'example@atdata.com',
     firstName: 'John', lastName: 'Doe',
     phoneNumber: '1234929999',
-    email: 'example@atdata.com',
     ipAddress: '47.25.65.96',
     address: { addressLine1: '15900 SPACE CN', city: 'HOUSTON', state: 'TX', postalCode: '77062' },
   },
+  // 1: Clean — same identity (test@example.com returns "invalid", so reuse atdata)
   {
+    email: 'example@atdata.com',
     firstName: 'John', lastName: 'Doe',
     phoneNumber: '1234929999',
-    email: 'example@atdata.com',
     ipAddress: '47.25.65.96',
     address: { addressLine1: '15900 SPACE CN', city: 'HOUSTON', state: 'TX', postalCode: '77062' },
   },
+  // 2: Risky — fake identity with invalid email
   {
+    email: 'fake.person@nowhere.invalid',
     firstName: 'FAKE', lastName: 'PERSON',
     phoneNumber: '0000000000',
-    email: 'fake.person@nowhere.invalid',
     ipAddress: '0.0.0.0',
     address: { addressLine1: '999 NOWHERE ST', city: 'FAKETOWN', state: 'CA', postalCode: '00000' },
   },
+  // 3: Risky — fake identity with invalid email
   {
+    email: 'fake.person@nowhere.invalid',
     firstName: 'FAKE', lastName: 'PERSON',
     phoneNumber: '0000000000',
-    email: 'fake.person@nowhere.invalid',
     ipAddress: '0.0.0.0',
     address: { addressLine1: '999 NOWHERE ST', city: 'FAKETOWN', state: 'CA', postalCode: '00000' },
   },
@@ -459,13 +416,16 @@ async function pullCreditReport(buyerInfo) {
         flexIdIdentity,
         { headers }
       );
-      const riskScore = findValueByKey(flexIdResponse.data, 'riskScore', 'score', 'fraudScore', 'verificationScore');
-      const verified = findValueByKey(flexIdResponse.data, 'verified', 'identityVerified', 'valid');
-      if (riskScore !== undefined && riskScore > 500) flexIdFailed = true;
-      if (verified === false || verified === 0) flexIdFailed = true;
+      // FlexID returns CVI score (0-50, higher = better verification)
+      const cviScore = findValueByKey(flexIdResponse.data, 'ComprehensiveVerificationIndex', 'cvi', 'CVI', 'verificationScore', 'score');
+      const riskScore = findValueByKey(flexIdResponse.data, 'riskScore', 'fraudScore');
+      // CVI < 10 means weak verification
+      if (typeof cviScore === 'number' && cviScore < 10) flexIdFailed = true;
+      // High risk score is also bad
+      if (typeof riskScore === 'number' && riskScore > 500) flexIdFailed = true;
       const errorMsg = flexIdResponse.data?.messages || flexIdResponse.data?.error;
       if (errorMsg) flexIdFailed = true;
-      console.log(`CRS Flex ID result: ${flexIdFailed ? 'FAILED' : 'PASSED'} (risk: ${riskScore}, verified: ${verified})`);
+      console.log(`CRS Flex ID result: ${flexIdFailed ? 'FAILED' : 'PASSED'} (CVI: ${cviScore}, risk: ${riskScore})`);
     } catch (flexErr) {
       console.warn('CRS Flex ID check failed:', flexErr.message);
       if (idx >= 2) flexIdFailed = true;
@@ -479,12 +439,12 @@ async function pullCreditReport(buyerInfo) {
         fraudFinderIdentity,
         { headers }
       );
-      // Fraud Finder returns: risk.score (0-1000, lower=safer), email_validation.status
+      // Fraud Finder returns: risk.score (0-1000 range, lower=safer), email_validation.status
       const riskScore = ffResponse.data?.risk?.score;
       const emailStatus = ffResponse.data?.email_validation?.status;
-      // risk score > 500 = high risk
+      // risk score > 500 = high risk (clean profiles return ~47)
       if (typeof riskScore === 'number' && riskScore > 500) fraudFinderFailed = true;
-      // invalid email = suspicious
+      // invalid/disposable email = suspicious
       if (emailStatus === 'invalid' || emailStatus === 'disposable') fraudFinderFailed = true;
       console.log(`CRS Fraud Finder result: ${fraudFinderFailed ? 'FRAUD DETECTED' : 'CLEAN'} (risk: ${riskScore}, email: ${emailStatus})`);
     } catch (ffErr) {
