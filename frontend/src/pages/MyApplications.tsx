@@ -247,7 +247,7 @@ export default function MyApplications() {
             <h1 className="font-display text-3xl font-bold text-foreground">
               My Applications
             </h1>
-            {!loading && applications.length > 0 && (
+            {!loading && (
               <Badge
                 variant="secondary"
                 className="ml-1 text-xs tabular-nums"
@@ -295,25 +295,31 @@ export default function MyApplications() {
         {/* -------------------------------------------------------- */}
 
         {!loading && !error && applications.length === 0 && (
-          <div className="mt-8 flex flex-col items-center gap-4 py-16 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-              <Home className="h-8 w-8 text-muted-foreground/50" />
+          <div className="mt-8 flex flex-col items-center gap-5 py-16 text-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted">
+              <FileText className="h-10 w-10 text-muted-foreground/40" />
             </div>
-            <div>
-              <h2 className="font-display text-lg font-semibold text-foreground">
-                No applications yet
+            <div className="max-w-sm">
+              <h2 className="font-display text-xl font-semibold text-foreground">
+                0 Applications
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                You haven't applied to any listings yet. Browse available
-                properties to get started.
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                You haven't applied to any listings yet. Find a property you
+                like, click <strong>Apply Now</strong>, and your credit screening
+                will be completed instantly.
               </p>
             </div>
-            <Button asChild>
-              <Link to="/">
-                <Home className="mr-2 h-4 w-4" />
-                Browse Listings
-              </Link>
-            </Button>
+            <div className="flex flex-col items-center gap-2">
+              <Button asChild size="lg">
+                <Link to="/">
+                  <Home className="mr-2 h-4 w-4" />
+                  Browse Listings
+                </Link>
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Applying takes less than a minute
+              </p>
+            </div>
           </div>
         )}
 
