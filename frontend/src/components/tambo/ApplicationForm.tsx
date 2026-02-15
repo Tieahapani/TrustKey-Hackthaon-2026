@@ -6,10 +6,10 @@
  * the application through the existing API.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2 } from "lucide-react";
-import { submitApplication } from "@/lib/api";
+import { submitApplication, fetchMyApplications } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,8 +21,22 @@ interface ApplicationFormProps {
 export default function ApplicationForm({ listingId, listingTitle }: ApplicationFormProps) {
   const { user } = useAuth();
   const [form, setForm] = useState({ lastName: "", firstName: "", dob: "", email: "" });
-  const [state, setState] = useState<"form" | "loading" | "success">("form");
+  const [state, setState] = useState<"form" | "loading" | "success" | "already_applied">("form");
   const [error, setError] = useState("");
+
+  // Check if user already applied to this listing
+  useEffect(() => {
+    if (!user) return;
+    fetchMyApplications()
+      .then((apps) => {
+        const applied = apps.some((a: any) => {
+          const lid = typeof a.listingId === "object" ? a.listingId._id : a.listingId;
+          return lid === listingId;
+        });
+        if (applied) setState("already_applied");
+      })
+      .catch(() => {});
+  }, [user, listingId]);
 
   const handleApply = async () => {
     if (!user) {
@@ -149,7 +163,7 @@ export default function ApplicationForm({ listingId, listingTitle }: Application
           </motion.div>
         )}
 
-        {state === "success" && (
+        {(state === "success" || state === "already_applied") && (
           <motion.div
             key="success"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -160,9 +174,13 @@ export default function ApplicationForm({ listingId, listingTitle }: Application
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
               <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
-            <h3 className="text-sm font-semibold text-foreground">Application Submitted</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              {state === "already_applied" ? "Already Applied" : "Application Submitted"}
+            </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Your application has been submitted and screened. The seller will review it and get back to you.
+              {state === "already_applied"
+                ? "You have already applied to this listing. The seller will review your application and get back to you."
+                : "Your application has been submitted and screened. The seller will review it and get back to you."}
             </p>
           </motion.div>
         )}

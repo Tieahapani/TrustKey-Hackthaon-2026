@@ -82,7 +82,7 @@ export default function Navbar() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Buyer
+              Buy
             </button>
             <button
               onClick={() => handleRoleSwitch("seller")}
@@ -92,7 +92,7 @@ export default function Navbar() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Seller
+              Sell
             </button>
           </div>
 
@@ -148,7 +148,7 @@ export default function Navbar() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Buyer
+                  Buy
                 </button>
                 <button
                   onClick={() => handleRoleSwitch("seller")}
@@ -158,7 +158,7 @@ export default function Navbar() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Seller
+                  Sell
                 </button>
               </div>
 

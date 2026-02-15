@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ScreeningBadge from "@/components/ScreeningBadge";
-import { fetchListing, submitApplication, resolveImageUrl, type Listing, type Application } from "@/lib/api";
+import { fetchListing, fetchMyApplications, submitApplication, resolveImageUrl, type Listing, type Application } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -33,6 +33,7 @@ export default function ListingDetail() {
   const [applyResult, setApplyResult] = useState<Application | null>(null);
   const [applyForm, setApplyForm] = useState({ lastName: "", firstName: "", dob: "", email: "" });
   const [applyError, setApplyError] = useState("");
+  const [hasApplied, setHasApplied] = useState(false);
 
   // Fetch listing from backend
   useEffect(() => {
@@ -43,6 +44,20 @@ export default function ListingDetail() {
       .catch(() => setListing(null))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Check if user already applied to this listing
+  useEffect(() => {
+    if (!id || !isAuthenticated) return;
+    fetchMyApplications()
+      .then((apps) => {
+        const applied = apps.some((a: any) => {
+          const lid = typeof a.listingId === "object" ? a.listingId._id : a.listingId;
+          return lid === id;
+        });
+        setHasApplied(applied);
+      })
+      .catch(() => {});
+  }, [id, isAuthenticated]);
 
   // Expose listing data to window for chatbot context
   useEffect(() => {
@@ -97,6 +112,7 @@ export default function ListingDetail() {
       });
       setApplyResult(result);
       setApplyState("success");
+      setHasApplied(true);
     } catch (err: any) {
       const msg = err.response?.data?.error || "Application failed. Please try again.";
       setApplyError(msg);
@@ -228,6 +244,7 @@ export default function ListingDetail() {
                 <Button
                   className="w-full"
                   size="lg"
+                  disabled={hasApplied}
                   onClick={() => {
                     if (!isAuthenticated) {
                       window.location.href = "/login";
@@ -236,8 +253,17 @@ export default function ListingDetail() {
                     setApplyOpen(true);
                   }}
                 >
-                  <Send className="mr-2 h-4 w-4" />
-                  Apply Now
+                  {hasApplied ? (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Already Applied
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Apply Now
+                    </>
+                  )}
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">
                   Your data is secure and encrypted

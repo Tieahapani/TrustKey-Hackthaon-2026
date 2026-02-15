@@ -15,7 +15,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Navigate } from "react-router-dom";
-import confetti from "canvas-confetti";
 import {
   fetchMyListings,
   fetchApplications,
@@ -293,9 +292,6 @@ export default function Dashboard() {
     try {
       await updateApplicationStatus(id, status);
 
-      if (status === "approved") {
-        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
-      }
       toast.success(`Application ${status}`);
     } catch (err: unknown) {
       // Roll back optimistic update
