@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Bed, Bath, Maximize, MapPin, DollarSign,
-  CheckCircle, ShieldCheck, MessageSquare,
+  ArrowLeft, Bed, Bath, Maximize, MapPin,
+  CheckCircle, XCircle, ShieldCheck, MessageSquare,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -26,9 +26,9 @@ interface Listing {
   propertyDetails: string;
   screeningCriteria: {
     minCreditScore: number;
-    minIncomeMultiplier: number;
     noEvictions: boolean;
     noBankruptcy: boolean;
+    noCriminal: boolean;
   };
   sellerId: { _id: string; name: string; email: string; phone: string };
 }
@@ -43,8 +43,14 @@ export default function ListingDetail() {
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const [applyResult, setApplyResult] = useState<any>(null);
-  const [showConsent, setShowConsent] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
+
+  // Buyer info form
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [dob, setDob] = useState('');
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     async function fetch() {
@@ -60,19 +66,38 @@ export default function ListingDetail() {
     fetch();
   }, [id]);
 
+  // Pre-fill email from profile
+  useEffect(() => {
+    if (profile?.email) {
+      setEmail(profile.email);
+    }
+  }, [profile]);
+
   const handleApply = async () => {
+    if (!firstName.trim() || !lastName.trim() || !dob || !email.trim()) {
+      alert('Please fill in all fields');
+      return;
+    }
+
     setApplying(true);
     try {
       const res = await api.post('/api/applications', {
         listingId: id,
         consent: true,
+        buyerInfo: {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          dob,
+          email: email.trim(),
+        },
       });
       setApplyResult(res.data);
       setApplied(true);
-      setShowConsent(false);
+      setShowForm(false);
     } catch (err: any) {
       if (err?.response?.status === 409) {
         setApplied(true);
+        setShowForm(false);
       }
       alert(err?.response?.data?.error || 'Failed to apply');
     } finally {
@@ -92,6 +117,10 @@ export default function ListingDetail() {
 
   const placeholderImg = `https://placehold.co/800x600/e2e8f0/64748b?text=${encodeURIComponent(listing.title.slice(0, 20))}`;
   const displayPhotos = listing.photos.length > 0 ? listing.photos : [placeholderImg];
+
+  // Get match breakdown for display
+  const breakdown = applyResult?.matchBreakdown || applyResult?.application?.matchBreakdown;
+  const resultData = applyResult?.application || applyResult;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -223,27 +252,74 @@ export default function ListingDetail() {
                 Apply to this Listing
               </h3>
 
-              {applied && applyResult ? (
+              {applied && resultData ? (
                 <div className="space-y-3">
                   <p className="text-sm text-emerald-600 font-medium">Application submitted!</p>
                   <div className="p-3 rounded-lg bg-muted">
                     <p className="text-sm font-medium mb-1">Your Match Score</p>
                     <p className={`text-3xl font-bold ${
-                      applyResult.matchColor === 'green' ? 'text-emerald-600' :
-                      applyResult.matchColor === 'yellow' ? 'text-amber-600' : 'text-red-600'
+                      resultData.matchColor === 'green' ? 'text-emerald-600' :
+                      resultData.matchColor === 'yellow' ? 'text-amber-600' : 'text-red-600'
                     }`}>
-                      {applyResult.matchScore}%
+                      {resultData.matchScore}%
                     </p>
                   </div>
+                  {/* Match Breakdown */}
+                  {breakdown && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Screening Breakdown</p>
+                      {Object.entries(breakdown).map(([key, val]: [string, any]) => (
+                        <div key={key} className="flex items-center gap-2 text-sm">
+                          {val.passed ? (
+                            <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                          )}
+                          <span className="text-muted-foreground">{val.detail}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : applied ? (
                 <p className="text-sm text-muted-foreground">You have already applied to this listing.</p>
-              ) : showConsent ? (
+              ) : showForm ? (
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    By applying, you consent to a credit check via CRS Credit API.
-                    Your credit score, income, and background will be compared against the seller's criteria.
+                    By applying, you consent to a background screening via CRS Credit API.
                   </p>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="First Name"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Last Name"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <input
+                      type="date"
+                      placeholder="Date of Birth"
+                      value={dob}
+                      onChange={(e) => setDob(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={handleApply}
@@ -253,7 +329,7 @@ export default function ListingDetail() {
                       {applying ? 'Screening...' : 'I Consent — Apply'}
                     </button>
                     <button
-                      onClick={() => setShowConsent(false)}
+                      onClick={() => setShowForm(false)}
                       className="px-4 py-2 rounded-lg border text-sm hover:bg-muted"
                     >
                       Cancel
@@ -262,7 +338,7 @@ export default function ListingDetail() {
                 </div>
               ) : (
                 <button
-                  onClick={() => setShowConsent(true)}
+                  onClick={() => setShowForm(true)}
                   className="w-full px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
                 >
                   Apply Now
@@ -274,7 +350,7 @@ export default function ListingDetail() {
           {/* Screening Requirements */}
           <div className="border rounded-xl p-5 bg-card">
             <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-primary" />
+              <ShieldCheck className="w-5 h-5 text-primary" />
               Screening Requirements
             </h3>
             <ul className="space-y-2 text-sm">
@@ -284,12 +360,6 @@ export default function ListingDetail() {
                   <span className="font-medium">{listing.screeningCriteria.minCreditScore}</span>
                 </li>
               )}
-              {listing.screeningCriteria.minIncomeMultiplier > 0 && (
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">Income Requirement</span>
-                  <span className="font-medium">{listing.screeningCriteria.minIncomeMultiplier}x rent</span>
-                </li>
-              )}
               <li className="flex justify-between">
                 <span className="text-muted-foreground">No Evictions</span>
                 <span className="font-medium">{listing.screeningCriteria.noEvictions ? 'Required' : 'Not required'}</span>
@@ -297,6 +367,10 @@ export default function ListingDetail() {
               <li className="flex justify-between">
                 <span className="text-muted-foreground">No Bankruptcy</span>
                 <span className="font-medium">{listing.screeningCriteria.noBankruptcy ? 'Required' : 'Not required'}</span>
+              </li>
+              <li className="flex justify-between">
+                <span className="text-muted-foreground">No Criminal Record</span>
+                <span className="font-medium">{listing.screeningCriteria.noCriminal ? 'Required' : 'Not required'}</span>
               </li>
             </ul>
           </div>

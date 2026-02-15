@@ -4,7 +4,7 @@ const Application = require('../models/Application');
 const Listing = require('../models/Listing');
 const User = require('../models/User');
 const { verifyToken } = require('../middleware/auth');
-const { pullCreditReport, calculateMatchScore } = require('../services/crs');
+const { pullComprehensiveReport, calculateMatchScore } = require('../services/crs');
 
 // POST /api/applications — Buyer applies to a listing (triggers CRS screening)
 router.post('/', verifyToken, async (req, res) => {
@@ -35,11 +35,18 @@ router.post('/', verifyToken, async (req, res) => {
       return res.status(409).json({ error: 'You have already applied to this listing' });
     }
 
-    // Pull credit report from CRS using buyer's identity info
-    const crsData = await pullCreditReport(buyerInfo);
+    // Run comprehensive screening (uses sandbox test identities)
+    const crsData = await pullComprehensiveReport(buyerInfo);
 
-    // Calculate match score against seller's criteria
-    const criteria = listing.screeningCriteria.toObject();
+    // Build criteria object for matcher
+    const criteria = {
+      minCreditScore: listing.screeningCriteria.minCreditScore || 0,
+      noEvictions: listing.screeningCriteria.noEvictions || false,
+      noBankruptcy: listing.screeningCriteria.noBankruptcy || false,
+      noCriminal: listing.screeningCriteria.noCriminal || false,
+    };
+
+    // Calculate match score
     const { matchScore, matchBreakdown, matchColor } = calculateMatchScore(crsData, criteria);
 
     const application = await Application.create({
@@ -104,7 +111,7 @@ router.get('/mine', verifyToken, async (req, res) => {
     }
 
     const applications = await Application.find({ buyerId: user._id })
-      .populate('listingId', 'title address city price photos')
+      .populate('listingId', 'title address city price photos listingType')
       .sort({ createdAt: -1 })
       .lean();
 

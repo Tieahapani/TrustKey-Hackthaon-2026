@@ -27,9 +27,10 @@ interface Applicant {
   matchColor: 'green' | 'yellow' | 'red';
   matchBreakdown: {
     creditScore: { passed: boolean; detail: string };
-    income: { passed: boolean; detail: string };
     evictions: { passed: boolean; detail: string };
     bankruptcy: { passed: boolean; detail: string };
+    criminal: { passed: boolean; detail: string };
+    fraud: { passed: boolean; detail: string };
   };
   status: string;
   screenedAt: string;

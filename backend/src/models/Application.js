@@ -1,77 +1,63 @@
 const mongoose = require('mongoose');
 
-const applicationSchema = new mongoose.Schema({
-  listingId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Listing',
-    required: true,
-  },
-  buyerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'screened', 'approved', 'rejected'],
-    default: 'pending',
-  },
-  crsData: {
-    creditScore: { type: Number, default: 0 },
-    evictions: { type: Number, default: 0 },
-    bankruptcies: { type: Number, default: 0 },
-    criminalRecords: { type: Number, default: 0 },
-    fraudFlag: { type: Boolean, default: false },
-  },
-  matchScore: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100,
-  },
-  buyerInfo: {
-    firstName: { type: String, default: '' },
-    lastName: { type: String, default: '' },
-    dob: { type: String, default: '' },
-    email: { type: String, default: '' },
-  },
-  matchBreakdown: {
-    creditScore: {
-      passed: { type: Boolean, default: false },
-      detail: { type: String, default: '' },
+const applicationSchema = new mongoose.Schema(
+  {
+    listingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Listing',
+      required: true,
     },
-    evictions: {
-      passed: { type: Boolean, default: false },
-      detail: { type: String, default: '' },
+    buyerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
-    bankruptcy: {
-      passed: { type: Boolean, default: false },
-      detail: { type: String, default: '' },
+    buyerInfo: {
+      firstName: { type: String, default: '' },
+      lastName: { type: String, default: '' },
+      dob: { type: String, default: '' },
+      email: { type: String, default: '' },
     },
-    criminal: {
-      passed: { type: Boolean, default: false },
-      detail: { type: String, default: '' },
+    status: {
+      type: String,
+      enum: ['pending', 'screened', 'approved', 'rejected'],
+      default: 'pending',
     },
-    fraud: {
-      passed: { type: Boolean, default: false },
-      detail: { type: String, default: '' },
+    consentGiven: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+    crsData: {
+      creditScore: { type: Number, default: 0 },
+      evictions: { type: Number, default: 0 },
+      bankruptcies: { type: Number, default: 0 },
+      criminalOffenses: { type: Number, default: 0 },
+      fraudRiskScore: { type: Number, default: 0 },
+      identityVerified: { type: Boolean, default: false },
+      requestIds: { type: Object, default: {} },
+    },
+    matchScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+    },
+    matchBreakdown: {
+      type: Object,
+      default: {},
+    },
+    matchColor: {
+      type: String,
+      enum: ['green', 'yellow', 'red'],
+    },
+    screenedAt: {
+      type: Date,
     },
   },
-  matchColor: {
-    type: String,
-    enum: ['green', 'yellow', 'red'],
-    default: 'red',
-  },
-  consentGiven: {
-    type: Boolean,
-    default: false,
-  },
-  screenedAt: {
-    type: Date,
-  },
-}, {
-  timestamps: true,
-});
+  {
+    timestamps: true,
+  }
+);
 
 // Prevent duplicate applications
 applicationSchema.index({ listingId: 1, buyerId: 1 }, { unique: true });
