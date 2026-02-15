@@ -20,7 +20,11 @@ app.use(cors({
     return cb(null, false);
   },
   credentials: true,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+// Ensure preflight OPTIONS requests are handled
+app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
 
 // Serve uploaded images statically
