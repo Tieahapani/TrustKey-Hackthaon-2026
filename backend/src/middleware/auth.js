@@ -37,21 +37,25 @@ function loadServiceAccount() {
   }
 }
 
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
+// Lazy initialization — ensures Firebase is ready before verifying tokens
+function ensureFirebaseInitialized() {
+  if (admin.apps.length) return true;
+
   const serviceAccount = loadServiceAccount();
-  if (serviceAccount) {
-    try {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-      console.log('Firebase Admin initialized for project:', serviceAccount.project_id);
-    } catch (err) {
-      console.warn('Firebase Admin init failed:', err.message);
-      admin.initializeApp();
-    }
-  } else {
-    console.warn('FIREBASE_SERVICE_ACCOUNT not set — auth will not work');
+  if (!serviceAccount) {
+    console.error('FIREBASE_SERVICE_ACCOUNT not set — auth will not work');
+    return false;
+  }
+
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    console.log('Firebase Admin initialized for project:', serviceAccount.project_id);
+    return true;
+  } catch (err) {
+    console.error('Firebase Admin init failed:', err.message);
+    return false;
   }
 }
 
@@ -63,6 +67,10 @@ async function verifyToken(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
+  }
+
+  if (!ensureFirebaseInitialized()) {
+    return res.status(500).json({ error: 'Auth service not configured' });
   }
 
   const token = header.split('Bearer ')[1];
@@ -84,6 +92,11 @@ async function optionalAuth(req, res, next) {
   if (!header || !header.startsWith('Bearer ')) {
     return next();
   }
+
+  if (!ensureFirebaseInitialized()) {
+    return next();
+  }
+
   const token = header.split('Bearer ')[1];
   try {
     const decoded = await admin.auth().verifyIdToken(token);
