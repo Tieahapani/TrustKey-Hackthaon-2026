@@ -1,142 +1,112 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { isFirebaseConfigured } from '@/lib/firebase';
-import { UserPlus } from 'lucide-react';
+/**
+ * Registration page — creates a Firebase user then a backend profile.
+ * Role is always "buyer" by default; users switch via the navbar toggle.
+ */
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { UserPlus } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function Register() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
+    if (!fullName || !email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
     setLoading(true);
-
     try {
-      await register(email, password, name, role);
-      navigate('/');
+      await register(email, password, fullName, "buyer");
+      navigate("/");
     } catch (err: any) {
-      setError(err?.message || 'Registration failed.');
+      const code = err?.code || "";
+      if (code === "auth/email-already-in-use") {
+        setError("An account with this email already exists.");
+      } else if (code === "auth/weak-password") {
+        setError("Password is too weak. Use at least 6 characters.");
+      } else if (code === "auth/invalid-email") {
+        setError("Please enter a valid email address.");
+      } else {
+        setError(err?.message || "Registration failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Create Account</h1>
-          <p className="text-muted-foreground mt-2">Join HomeScreen as a buyer or seller</p>
+    <div className="flex min-h-screen items-center justify-center px-4 pt-16">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md rounded-2xl border border-border bg-card p-8 card-shadow"
+      >
+        <div className="text-center">
+          <h1 className="font-display text-2xl font-bold text-foreground">Create Your Account</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Join TrustKey to find or list properties</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 bg-card border rounded-xl p-6">
-          {!isFirebaseConfigured && (
-            <div className="p-3 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm">
-              Firebase is not configured. Set VITE_FIREBASE_API_KEY (and authDomain, projectId) in
-              frontend/.env for local dev, or in Vercel → Settings → Environment Variables, then
-              redeploy.
-            </div>
-          )}
-          {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          {error && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">Full Name</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
             <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="John Doe"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+              placeholder="Jane Doe"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">Email</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">Password</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="••••••••"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+              placeholder="Min. 6 characters"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-3">I am a...</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setRole('buyer')}
-                className={`px-4 py-3 rounded-lg border-2 text-center transition-colors ${
-                  role === 'buyer'
-                    ? 'border-primary bg-primary/5 text-primary font-medium'
-                    : 'border-border hover:border-muted-foreground'
-                }`}
-              >
-                <div className="text-2xl mb-1">🏠</div>
-                <div className="text-sm font-medium">Buyer / Renter</div>
-                <div className="text-xs text-muted-foreground">Looking for a place</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('seller')}
-                className={`px-4 py-3 rounded-lg border-2 text-center transition-colors ${
-                  role === 'seller'
-                    ? 'border-primary bg-primary/5 text-primary font-medium'
-                    : 'border-border hover:border-muted-foreground'
-                }`}
-              >
-                <div className="text-2xl mb-1">🔑</div>
-                <div className="text-sm font-medium">Seller / Landlord</div>
-                <div className="text-xs text-muted-foreground">Listing a property</div>
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            <UserPlus className="w-4 h-4" />
-            {loading ? 'Creating account...' : 'Create Account'}
-          </button>
-
-          <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link to="/login" className="text-primary hover:underline font-medium">
-              Log in
-            </Link>
-          </p>
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            {loading ? "Creating account..." : "Create Account"}
+          </Button>
         </form>
-      </div>
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link to="/login" className="font-medium text-foreground hover:underline">Sign in</Link>
+        </p>
+      </motion.div>
     </div>
   );
 }

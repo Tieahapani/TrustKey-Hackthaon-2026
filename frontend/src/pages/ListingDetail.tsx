@@ -1,395 +1,313 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+/**
+ * Listing detail page — gallery, property info, apply modal with CRS screening,
+ * and AI property chat assistant.
+ */
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 import {
-  ArrowLeft, Bed, Bath, Maximize, MapPin,
-  CheckCircle, XCircle, ShieldCheck, MessageSquare,
-} from 'lucide-react';
-import { formatPrice } from '@/lib/utils';
-import { useAuth } from '@/context/AuthContext';
-import PropertyChat from '@/components/PropertyChat';
-import api from '@/lib/api';
+  ArrowLeft, Bed, Bath, Maximize, MapPin, Calendar,
+  CheckCircle2, Send, Loader2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import ScreeningBadge from "@/components/ScreeningBadge";
+import PropertyChat from "@/components/PropertyChat";
+import { fetchListing, submitApplication, type Listing, type Application } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 
-interface Listing {
-  _id: string;
-  title: string;
-  description: string;
-  address: string;
-  city: string;
-  state: string;
-  price: number;
-  listingType: 'rent' | 'sale';
-  photos: string[];
-  bedrooms: number;
-  bathrooms: number;
-  sqft: number;
-  amenities: string[];
-  propertyDetails: string;
-  screeningCriteria: {
-    minCreditScore: number;
-    noEvictions: boolean;
-    noBankruptcy: boolean;
-    noCriminal: boolean;
-  };
-  sellerId: { _id: string; name: string; email: string; phone: string };
-}
+const PLACEHOLDER = "https://placehold.co/800x600/e2e8f0/94a3b8?text=No+Image";
 
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { isAuthenticated } = useAuth();
+
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showChat, setShowChat] = useState(false);
-  const [applying, setApplying] = useState(false);
-  const [applied, setApplied] = useState(false);
-  const [applyResult, setApplyResult] = useState<any>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [selectedPhoto, setSelectedPhoto] = useState(0);
+  const [selectedImage, setSelectedImage] = useState(0);
 
-  // Buyer info form
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [dob, setDob] = useState('');
-  const [email, setEmail] = useState('');
+  // Apply modal state
+  const [applyOpen, setApplyOpen] = useState(false);
+  const [applyState, setApplyState] = useState<"form" | "loading" | "success">("form");
+  const [applyResult, setApplyResult] = useState<Application | null>(null);
+  const [applyForm, setApplyForm] = useState({ lastName: "", firstName: "", dob: "", email: "" });
+  const [applyError, setApplyError] = useState("");
 
+  // Fetch listing from backend
   useEffect(() => {
-    async function fetch() {
-      try {
-        const res = await api.get(`/api/listings/${id}`);
-        setListing(res.data);
-      } catch {
-        navigate('/');
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetch();
+    if (!id) return;
+    setLoading(true);
+    fetchListing(id)
+      .then(setListing)
+      .catch(() => setListing(null))
+      .finally(() => setLoading(false));
   }, [id]);
-
-  // Pre-fill email from profile
-  useEffect(() => {
-    if (profile?.email) {
-      setEmail(profile.email);
-    }
-  }, [profile]);
-
-  const handleApply = async () => {
-    if (!firstName.trim() || !lastName.trim() || !dob || !email.trim()) {
-      alert('Please fill in all fields');
-      return;
-    }
-
-    setApplying(true);
-    try {
-      const res = await api.post('/api/applications', {
-        listingId: id,
-        consent: true,
-        buyerInfo: {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          dob,
-          email: email.trim(),
-        },
-      });
-      setApplyResult(res.data);
-      setApplied(true);
-      setShowForm(false);
-    } catch (err: any) {
-      if (err?.response?.status === 409) {
-        setApplied(true);
-        setShowForm(false);
-      }
-      alert(err?.response?.data?.error || 'Failed to apply');
-    } finally {
-      setApplying(false);
-    }
-  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center pt-16">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!listing) return null;
-
-  const placeholderImg = `https://placehold.co/800x600/e2e8f0/64748b?text=${encodeURIComponent(listing.title.slice(0, 20))}`;
-  const displayPhotos = listing.photos.length > 0 ? listing.photos : [placeholderImg];
-
-  // Get match breakdown for display
-  const breakdown = applyResult?.matchBreakdown || applyResult?.application?.matchBreakdown;
-  const resultData = applyResult?.application || applyResult;
-
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to listings
-      </button>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left: Photos + Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Photo Gallery */}
-          <div className="space-y-3">
-            <div className="aspect-[16/10] rounded-xl overflow-hidden bg-muted">
-              <img
-                src={displayPhotos[selectedPhoto]}
-                alt={listing.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = placeholderImg;
-                }}
-              />
-            </div>
-            {displayPhotos.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {displayPhotos.map((url, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedPhoto(i)}
-                    className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                      i === selectedPhoto ? 'border-primary' : 'border-transparent hover:border-muted-foreground/30'
-                    }`}
-                  >
-                    <img src={url} alt="" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Listing Info */}
-          <div>
-            <div className="flex items-start justify-between gap-4 mb-2">
-              <h1 className="text-3xl font-bold">{listing.title}</h1>
-              <span className="flex-shrink-0 px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary">
-                {listing.listingType === 'rent' ? 'For Rent' : 'For Sale'}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1 text-muted-foreground mb-4">
-              <MapPin className="w-4 h-4" />
-              {listing.address}, {listing.city}, {listing.state}
-            </div>
-
-            <p className="text-3xl font-bold text-primary mb-6">
-              {formatPrice(listing.price)}
-              {listing.listingType === 'rent' && (
-                <span className="text-base font-normal text-muted-foreground">/month</span>
-              )}
-            </p>
-
-            <div className="flex gap-6 mb-6 py-4 border-y">
-              <div className="flex items-center gap-2">
-                <Bed className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium">{listing.bedrooms}</span>
-                <span className="text-muted-foreground">Beds</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Bath className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium">{listing.bathrooms}</span>
-                <span className="text-muted-foreground">Baths</span>
-              </div>
-              {listing.sqft > 0 && (
-                <div className="flex items-center gap-2">
-                  <Maximize className="w-5 h-5 text-muted-foreground" />
-                  <span className="font-medium">{listing.sqft.toLocaleString()}</span>
-                  <span className="text-muted-foreground">sqft</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Description */}
-          <div>
-            <h2 className="text-xl font-semibold mb-3">Description</h2>
-            <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
-              {listing.description}
-            </p>
-          </div>
-
-          {/* Amenities */}
-          {listing.amenities.length > 0 && (
-            <div>
-              <h2 className="text-xl font-semibold mb-3">Amenities</h2>
-              <div className="flex flex-wrap gap-2">
-                {listing.amenities.map((amenity) => (
-                  <span
-                    key={amenity}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm bg-muted"
-                  >
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                    {amenity}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Additional Details */}
-          {listing.propertyDetails && (
-            <div>
-              <h2 className="text-xl font-semibold mb-3">Additional Details</h2>
-              <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
-                {listing.propertyDetails}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="space-y-4">
-          {/* Apply Card */}
-          {profile?.role === 'buyer' && (
-            <div className="border rounded-xl p-5 bg-card sticky top-20">
-              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-primary" />
-                Apply to this Listing
-              </h3>
-
-              {applied && resultData ? (
-                <div className="space-y-3">
-                  <p className="text-sm text-emerald-600 font-medium">Application submitted!</p>
-                  <div className="p-3 rounded-lg bg-muted">
-                    <p className="text-sm font-medium mb-1">Your Match Score</p>
-                    <p className={`text-3xl font-bold ${
-                      resultData.matchColor === 'green' ? 'text-emerald-600' :
-                      resultData.matchColor === 'yellow' ? 'text-amber-600' : 'text-red-600'
-                    }`}>
-                      {resultData.matchScore}%
-                    </p>
-                  </div>
-                  {/* Match Breakdown */}
-                  {breakdown && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">Screening Breakdown</p>
-                      {Object.entries(breakdown).map(([key, val]: [string, any]) => (
-                        <div key={key} className="flex items-center gap-2 text-sm">
-                          {val.passed ? (
-                            <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                          )}
-                          <span className="text-muted-foreground">{val.detail}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : applied ? (
-                <p className="text-sm text-muted-foreground">You have already applied to this listing.</p>
-              ) : showForm ? (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    By applying, you consent to a background screening via CRS Credit API.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="text"
-                        placeholder="First Name"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Last Name"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <input
-                      type="date"
-                      placeholder="Date of Birth"
-                      value={dob}
-                      onChange={(e) => setDob(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleApply}
-                      disabled={applying}
-                      className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 disabled:opacity-50"
-                    >
-                      {applying ? 'Screening...' : 'I Consent — Apply'}
-                    </button>
-                    <button
-                      onClick={() => setShowForm(false)}
-                      className="px-4 py-2 rounded-lg border text-sm hover:bg-muted"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="w-full px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
-                >
-                  Apply Now
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Screening Requirements */}
-          <div className="border rounded-xl p-5 bg-card">
-            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-primary" />
-              Screening Requirements
-            </h3>
-            <ul className="space-y-2 text-sm">
-              {listing.screeningCriteria.minCreditScore > 0 && (
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">Min Credit Score</span>
-                  <span className="font-medium">{listing.screeningCriteria.minCreditScore}</span>
-                </li>
-              )}
-              <li className="flex justify-between">
-                <span className="text-muted-foreground">No Evictions</span>
-                <span className="font-medium">{listing.screeningCriteria.noEvictions ? 'Required' : 'Not required'}</span>
-              </li>
-              <li className="flex justify-between">
-                <span className="text-muted-foreground">No Bankruptcy</span>
-                <span className="font-medium">{listing.screeningCriteria.noBankruptcy ? 'Required' : 'Not required'}</span>
-              </li>
-              <li className="flex justify-between">
-                <span className="text-muted-foreground">No Criminal Record</span>
-                <span className="font-medium">{listing.screeningCriteria.noCriminal ? 'Required' : 'Not required'}</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* AI Chat Toggle */}
-          <button
-            onClick={() => setShowChat(!showChat)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-primary text-primary font-medium hover:bg-primary/5 transition-colors"
-          >
-            <MessageSquare className="w-5 h-5" />
-            {showChat ? 'Hide AI Assistant' : 'Ask AI About This Property'}
-          </button>
-
-          {/* Chat Widget */}
-          {showChat && listing && (
-            <PropertyChat listingId={listing._id} listingTitle={listing.title} />
-          )}
+  if (!listing) {
+    return (
+      <div className="flex min-h-screen items-center justify-center pt-16">
+        <div className="text-center">
+          <h2 className="font-display text-2xl font-semibold">Listing not found</h2>
+          <Button asChild className="mt-4"><Link to="/">Back to Browse</Link></Button>
         </div>
       </div>
+    );
+  }
+
+  const photos = listing.photos?.length ? listing.photos : [PLACEHOLDER];
+  const priceLabel = listing.listingType === "rent"
+    ? `$${listing.price.toLocaleString()}/mo`
+    : `$${listing.price.toLocaleString()}`;
+
+  const seller = typeof listing.sellerId === "object" ? listing.sellerId : null;
+
+  /** Submit the application to the backend (triggers CRS screening). */
+  const handleApply = async () => {
+    setApplyState("loading");
+    setApplyError("");
+    try {
+      const result = await submitApplication({
+        listingId: listing._id,
+        consent: true,
+        buyerInfo: {
+          firstName: applyForm.firstName,
+          lastName: applyForm.lastName,
+          dob: applyForm.dob,
+          email: applyForm.email,
+        },
+      });
+      setApplyResult(result);
+      setApplyState("success");
+    } catch (err: any) {
+      const msg = err.response?.data?.error || "Application failed. Please try again.";
+      setApplyError(msg);
+      setApplyState("form");
+    }
+  };
+
+  return (
+    <div className="min-h-screen pt-16">
+      <div className="container mx-auto px-4 py-6">
+        {/* Breadcrumb */}
+        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+          <Link to="/" className="flex items-center gap-1 hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> Browse
+          </Link>
+          <span>/</span>
+          <span className="text-foreground">{listing.title}</span>
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Left: Images + Details */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Gallery */}
+            <div className="space-y-3">
+              <div className="overflow-hidden rounded-xl">
+                <motion.img
+                  key={selectedImage}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  src={photos[selectedImage]}
+                  alt={listing.title}
+                  className="aspect-[16/10] w-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER; }}
+                />
+              </div>
+              {photos.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto">
+                  {photos.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImage(i)}
+                      className={`shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${i === selectedImage ? "border-primary" : "border-transparent"}`}
+                    >
+                      <img src={img} alt="" className="h-16 w-24 object-cover" onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER; }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Property info */}
+            <div>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h1 className="font-display text-3xl font-bold text-foreground">{listing.title}</h1>
+                  <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    {listing.address}, {listing.city}, {listing.state}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-display text-3xl font-bold text-secondary">{priceLabel}</p>
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    For {listing.listingType === "rent" ? "Rent" : "Sale"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-6 rounded-xl bg-muted/50 p-4">
+                <div className="flex items-center gap-2">
+                  <Bed className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-lg font-semibold text-foreground">{listing.bedrooms}</p>
+                    <p className="text-xs text-muted-foreground">Bedrooms</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Bath className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-lg font-semibold text-foreground">{listing.bathrooms}</p>
+                    <p className="text-xs text-muted-foreground">Bathrooms</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Maximize className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-lg font-semibold text-foreground">{listing.sqft.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Sq Ft</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-lg font-semibold text-foreground">{new Date(listing.createdAt).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">Listed</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <h2 className="font-display text-lg font-semibold text-foreground">Description</h2>
+                <p className="mt-2 leading-relaxed text-muted-foreground">{listing.description}</p>
+              </div>
+
+              {listing.amenities?.length > 0 && (
+                <div className="mt-6">
+                  <h2 className="font-display text-lg font-semibold text-foreground">Amenities</h2>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {listing.amenities.map((a) => (
+                      <span key={a} className="flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground">
+                        <CheckCircle2 className="h-3 w-3 text-screening-green" />
+                        {a}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right sidebar: Apply + Chat */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="sticky top-24 space-y-4">
+              <div className="rounded-xl border border-border bg-card p-6 card-shadow space-y-4">
+                <h3 className="font-display text-lg font-semibold text-foreground">Interested?</h3>
+                <p className="text-sm text-muted-foreground">
+                  Apply now and get instantly screened with our AI-powered credit check.
+                </p>
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      window.location.href = "/login";
+                      return;
+                    }
+                    setApplyOpen(true);
+                  }}
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  Apply Now
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  Your data is secure and encrypted
+                </p>
+              </div>
+
+              {/* AI Property Chat */}
+              <PropertyChat listingId={listing._id} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Apply Modal */}
+      <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">Apply for {listing.title}</DialogTitle>
+            <DialogDescription>
+              By applying, you consent to a soft credit check via CRS Credit API. This won't affect your credit score.
+            </DialogDescription>
+          </DialogHeader>
+
+          <AnimatePresence mode="wait">
+            {applyState === "form" && (
+              <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                {applyError && (
+                  <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{applyError}</p>
+                )}
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Last Name</label>
+                    <input value={applyForm.lastName} onChange={(e) => setApplyForm(f => ({ ...f, lastName: e.target.value }))} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring" placeholder="Doe" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">First Name</label>
+                    <input value={applyForm.firstName} onChange={(e) => setApplyForm(f => ({ ...f, firstName: e.target.value }))} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring" placeholder="Jane" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Date of Birth</label>
+                    <input value={applyForm.dob} onChange={(e) => setApplyForm(f => ({ ...f, dob: e.target.value }))} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring" placeholder="MM/DD/YYYY" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
+                    <input type="email" value={applyForm.email} onChange={(e) => setApplyForm(f => ({ ...f, email: e.target.value }))} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring" placeholder="you@example.com" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">By applying, you consent to a soft credit check. This won't affect your credit score.</p>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={() => setApplyOpen(false)}>Cancel</Button>
+                  <Button className="flex-1" onClick={handleApply} disabled={!applyForm.lastName || !applyForm.firstName || !applyForm.dob || !applyForm.email}>Apply</Button>
+                </div>
+              </motion.div>
+            )}
+
+            {applyState === "loading" && (
+              <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center py-8">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="mt-3 text-sm text-muted-foreground">Running your screening...</p>
+              </motion.div>
+            )}
+
+            {applyState === "success" && applyResult && (
+              <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-4 text-center py-4">
+                <div className="flex justify-center">
+                  <ScreeningBadge score={applyResult.matchScore} size="lg" />
+                </div>
+                <h3 className="font-display text-xl font-semibold text-foreground">Application Submitted!</h3>
+                <p className="text-sm text-muted-foreground">
+                  Your match score is {applyResult.matchScore}/100. The landlord will review your application and reach out soon.
+                </p>
+                <Button className="w-full" onClick={() => { setApplyOpen(false); setApplyState("form"); setApplyForm({ lastName: "", firstName: "", dob: "", email: "" }); setApplyResult(null); }}>
+                  Done
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -10,8 +10,8 @@ const { pullComprehensiveReport, calculateMatchScore } = require('../services/cr
 router.post('/', verifyToken, async (req, res) => {
   try {
     const user = await User.findOne({ firebaseUid: req.user.uid });
-    if (!user || user.role !== 'buyer') {
-      return res.status(403).json({ error: 'Only buyers can apply' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const { listingId, consent, buyerInfo } = req.body;
@@ -162,6 +162,31 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
   } catch (err) {
     console.error('Update application status error:', err);
     res.status(500).json({ error: 'Failed to update application' });
+  }
+});
+
+// DELETE /api/applications/:id — Buyer withdraws their own application
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findOne({ firebaseUid: req.user.uid });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const application = await Application.findById(req.params.id);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    if (application.buyerId.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized to withdraw this application' });
+    }
+
+    await application.deleteOne();
+    res.json({ message: 'Application withdrawn' });
+  } catch (err) {
+    console.error('Withdraw application error:', err);
+    res.status(500).json({ error: 'Failed to withdraw application' });
   }
 });
 

@@ -555,4 +555,7 @@ function calculateMatchScore(crsData, criteria) {
 module.exports = {
   pullComprehensiveReport,
   calculateMatchScore,
+  findValueByKey,
+  countOccurrences,
+  getMockComprehensiveData,
 };

@@ -1,53 +1,46 @@
-import { initializeApp } from 'firebase/app';
+/**
+ * Firebase client SDK configuration.
+ * Handles auth initialization with environment variable validation.
+ */
+import { initializeApp } from "firebase/app";
 import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  type User,
-} from 'firebase/auth';
-
-const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
-const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
-const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
-
-// Fail fast if env is missing (avoids "api-key-not-valid" from demo placeholder)
-if (!apiKey || apiKey === 'demo-key' || !apiKey.startsWith('AIza')) {
-  console.error(
-    '[Firebase] VITE_FIREBASE_API_KEY is missing or invalid. ' +
-    'Set it in frontend/.env (local) or Vercel → Settings → Environment Variables, then redeploy.'
-  );
-}
+} from "firebase/auth";
+import type { Auth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: apiKey || '',
-  authDomain: authDomain || '',
-  projectId: projectId || '',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
 };
 
-let app: ReturnType<typeof initializeApp>;
-let auth: ReturnType<typeof getAuth>;
+/** True when all required Firebase env vars are present */
+const isFirebaseConfigured =
+  !!firebaseConfig.apiKey &&
+  !!firebaseConfig.authDomain &&
+  !!firebaseConfig.projectId;
 
-try {
-  app = initializeApp(firebaseConfig);
+let auth: Auth;
+
+if (isFirebaseConfigured) {
+  const app = initializeApp(firebaseConfig);
   auth = getAuth(app);
-} catch (err) {
-  console.error('Firebase init failed:', err);
-  app = initializeApp(firebaseConfig, 'fallback');
-  auth = getAuth(app);
+} else {
+  console.warn(
+    "Firebase not configured. Set VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, VITE_FIREBASE_PROJECT_ID."
+  );
+  auth = {} as Auth;
 }
-
-/** True if Firebase config looks valid (API key set and not placeholder). */
-export const isFirebaseConfigured =
-  Boolean(apiKey && apiKey !== 'demo-key' && apiKey.startsWith('AIza'));
 
 export {
   auth,
+  isFirebaseConfigured,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
 };
-
-export type { User };
