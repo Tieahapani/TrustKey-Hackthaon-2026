@@ -4,7 +4,7 @@ TrustKey is a real estate marketplace with AI-powered tenant screening. It auto-
 
 ---
 
-_Last updated: March 2026_
+_Last updated: Feb 2026
 
 ## Tech Stack
 
